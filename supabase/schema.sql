@@ -139,6 +139,45 @@ create table if not exists analytics_events (
   created_at timestamptz default now()
 );
 
+-- ============== NOTIFICATIONS =============================
+do $$ begin
+  create type notification_kind as enum (
+    'request_new','request_accepted','request_declined','request_expired','request_cancelled',
+    'rider_arrived','delivery_completed','no_response',
+    'preferred_online','preferred_unavailable','rider_zone_changed','rider_suspended',
+    'verification_approved','verification_rejected','account_warning','profile_incomplete',
+    'new_rider_nearby','new_restaurant_nearby','system'
+  );
+exception when duplicate_object then null; end $$;
+
+create table if not exists notifications (
+  id uuid primary key default gen_random_uuid(),
+  recipient_type text not null check (recipient_type in ('restaurant','rider','admin')),
+  recipient_id uuid not null,
+  kind notification_kind not null,
+  title text not null,
+  body text,
+  request_id uuid references delivery_requests(id) on delete set null,
+  payload jsonb,
+  read_at timestamptz,
+  created_at timestamptz default now()
+);
+create index if not exists notifications_recipient_idx on notifications (recipient_type, recipient_id, read_at);
+create index if not exists notifications_created_idx on notifications (created_at desc);
+
+alter table notifications enable row level security;
+create policy if not exists "Read own notifications" on notifications
+  for select using (true);  -- tighten in production with auth.uid()
+create policy if not exists "Auth insert notification" on notifications
+  for insert with check (true);
+create policy if not exists "Update own notifications" on notifications
+  for update using (true);
+
+-- Enable realtime
+alter publication supabase_realtime add table notifications;
+alter publication supabase_realtime add table delivery_requests;
+alter publication supabase_realtime add table riders;
+
 -- ============== RLS =========================================
 alter table restaurants          enable row level security;
 alter table riders               enable row level security;

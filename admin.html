@@ -37,9 +37,12 @@
     </nav>
   </aside>
   <main class="dash-main">
-    <header class="mb-8">
-      <div class="text-xs uppercase tracking-widest text-charcoal/50">Operations admin</div>
-      <h1 class="font-display text-3xl md:text-4xl mt-1">Ecosystem overview</h1>
+    <header class="mb-8 flex items-start justify-between gap-4">
+      <div>
+        <div class="text-xs uppercase tracking-widest text-charcoal/50">Operations admin</div>
+        <h1 class="font-display text-3xl md:text-4xl mt-1">Ecosystem overview</h1>
+      </div>
+      <div id="notifSlot"></div>
     </header>
 
     <section class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
@@ -90,6 +93,10 @@
 <script type="module">
 import { fetchRiders, enums } from "./assets/js/api.js";
 import { toast } from "./assets/js/components.js";
+import { mountNotificationCenter } from "./assets/js/notification-center.js";
+import { pushNotification } from "./assets/js/notifications.js";
+
+mountNotificationCenter(document.getElementById("notifSlot"), { type:"admin", id:"admin" });
 
 document.querySelectorAll("[data-pane]").forEach(a => {
   a.addEventListener("click", e => {
@@ -120,11 +127,27 @@ verifyList.innerHTML = pendingMock.map((p,i) => `
     </div>
   </div>
 `).join("");
-document.querySelectorAll(".approve").forEach(b => b.addEventListener("click", () => {
-  b.closest(".bg-white").style.opacity = "0.4"; toast("Rider approved");
+document.querySelectorAll(".approve").forEach(b => b.addEventListener("click", async () => {
+  const p = pendingMock[+b.dataset.i];
+  b.closest(".bg-white").style.opacity = "0.4";
+  toast("Rider approved");
+  await pushNotification({
+    recipient_type:"rider", recipient_id:"pending_"+b.dataset.i,
+    kind:"verification_approved",
+    title:"Your verification has been approved.",
+    body:`Welcome aboard, ${p.name}. You're now a Verified Delivery Partner.`,
+  });
 }));
-document.querySelectorAll(".reject").forEach(b => b.addEventListener("click", () => {
-  b.closest(".bg-white").style.opacity = "0.4"; toast("Application rejected");
+document.querySelectorAll(".reject").forEach(b => b.addEventListener("click", async () => {
+  const p = pendingMock[+b.dataset.i];
+  b.closest(".bg-white").style.opacity = "0.4";
+  toast("Application rejected");
+  await pushNotification({
+    recipient_type:"rider", recipient_id:"pending_"+b.dataset.i,
+    kind:"verification_rejected",
+    title:"Verification needs another look.",
+    body:`Hi ${p.name}, please review your submission and try again.`,
+  });
 }));
 
 const riders = await fetchRiders();

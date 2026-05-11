@@ -60,6 +60,7 @@
         <h1 class="font-display text-3xl md:text-4xl mt-1">Tasteful Kitchen</h1>
       </div>
       <div class="flex items-center gap-2">
+        <div id="notifSlot"></div>
         <a href="./index.html" class="btn-ghost">← Back to site</a>
         <button id="mNewReq" class="btn-primary md:hidden">+ Request</button>
       </div>
@@ -128,8 +129,11 @@
 <script type="module">
 import { fetchRiders, fetchRequests, togglePreferred, getPreferred, submitRating, createDeliveryRequest, enums } from "./assets/js/api.js";
 import { riderCard, emptyState, toast, modal, closeModal, statusLabel } from "./assets/js/components.js";
+import { mountNotificationCenter } from "./assets/js/notification-center.js";
+import { notifyRequestCreated, pushNotification } from "./assets/js/notifications.js";
 
 const RESTAURANT_ID = "demo";
+mountNotificationCenter(document.getElementById("notifSlot"), { type: "restaurant", id: RESTAURANT_ID });
 
 // Populate filters
 const zoneSel = document.getElementById("filterZone");
@@ -276,9 +280,26 @@ function openRequest() {
     const payload = Object.fromEntries(fd.entries());
     payload.restaurant = "Tasteful Kitchen";
     payload.created = new Date().toISOString().replace("T"," ").slice(0,16);
-    await createDeliveryRequest(payload);
+    const created = await createDeliveryRequest(payload);
+    const riders = await fetchRiders();
+    await notifyRequestCreated(created, riders);
     closeModal();
     toast("Request sent to online riders in " + payload.zone);
+
+    // Demo: simulate a rider accepting after 4s so the restaurant sees the loop.
+    setTimeout(async () => {
+      const pool = riders.filter(r => (r.status==="online"||r.status==="available") && r.zones.includes(created.zone));
+      const accepter = pool[Math.floor(Math.random()*pool.length)] || riders[0];
+      if (!accepter) return;
+      await pushNotification({
+        recipient_type:"restaurant", recipient_id: RESTAURANT_ID,
+        kind:"request_accepted",
+        title:`${accepter.name} accepted your delivery request.`,
+        body:"Contact them via WhatsApp or call to confirm pickup.",
+        request_id: created.id,
+      });
+    }, 4000);
+
     renderRequests();
     loadKPIs();
   });
