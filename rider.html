@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Rider Profile · YUMYUMPO Dispatch</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/styles.css"/>
+<script>
+  tailwind.config = { theme: { extend: {
+    colors: { cream:'#FBF7F0', warm:'#F5EFE4', beige:'#E9DFCB', charcoal:'#161412', ink:'#1E1B17', ember:'#E5631F', dust:'#A89F90' },
+    fontFamily: { display:['Fraunces','serif'], sans:['Inter','system-ui','sans-serif'] }
+  }}};
+</script>
+</head>
+<body class="bg-cream text-charcoal font-sans">
+
+<header class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-cream/70 border-b border-charcoal/5">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 h-16 flex items-center justify-between">
+    <a href="./index.html" class="flex items-center gap-2">
+      <span class="w-8 h-8 rounded-full bg-charcoal text-cream grid place-items-center font-display text-sm">Y</span>
+      <span class="font-display text-lg">YUMYUMPO <span class="text-ember">Dispatch</span></span>
+    </a>
+    <a href="./marketplace.html" class="text-sm text-charcoal/70 hover:text-charcoal">← Marketplace</a>
+  </div>
+</header>
+
+<main id="profile" class="pt-28 pb-20 max-w-5xl mx-auto px-5 md:px-8"></main>
+
+<script type="module">
+import { fetchRider, togglePreferred, getPreferred } from "./assets/js/api.js";
+import { toast } from "./assets/js/components.js";
+
+const id = new URLSearchParams(location.search).get("id") || "r1";
+const r = await fetchRider(id);
+if (!r) {
+  document.getElementById("profile").innerHTML = `<div class="text-center py-20"><div class="font-display text-3xl">Rider not found</div><a href="./marketplace.html" class="btn-primary mt-6">Back to marketplace</a></div>`;
+  throw new Error("not found");
+}
+const pref = getPreferred().includes(r.id);
+const stars = "★".repeat(Math.round(r.rating)) + "☆".repeat(5 - Math.round(r.rating));
+
+document.getElementById("profile").innerHTML = `
+  <div class="grid lg:grid-cols-3 gap-8">
+    <aside class="lg:col-span-1">
+      <div class="rounded-3xl overflow-hidden border border-charcoal/5">
+        <img src="${r.photo}" class="w-full aspect-square object-cover"/>
+      </div>
+      <div class="mt-6 flex flex-col gap-2">
+        <a href="https://wa.me/${r.whatsapp}" target="_blank" class="btn-primary !bg-ember w-full">
+          WhatsApp ${r.name.split(" ")[0]}
+        </a>
+        <a href="tel:${r.phone}" class="btn-ghost w-full">Call ${r.phone}</a>
+        <button id="favBtn" class="btn-ghost w-full">${pref ? "★ Preferred" : "☆ Save as preferred"}</button>
+      </div>
+    </aside>
+
+    <section class="lg:col-span-2">
+      <div class="text-xs uppercase tracking-widest text-ember mb-2">Delivery Partner</div>
+      <h1 class="font-display text-4xl md:text-5xl tracking-tight">${r.name}</h1>
+      <div class="mt-2 text-charcoal/60 flex items-center gap-3 flex-wrap">
+        <span class="status-dot status-${r.status}"></span>
+        <span class="capitalize">${r.status}</span>
+        <span>·</span>
+        <span class="capitalize">${r.vehicle}</span>
+        ${r.verified ? '<span>·</span><span class="badge badge-verified">✔ Verified Delivery Partner</span>' : ""}
+      </div>
+
+      <div class="mt-8 grid grid-cols-3 gap-3">
+        <div class="kpi"><div class="kpi-label">Rating</div><div class="kpi-value">${r.rating.toFixed(1)}<span class="text-base text-ember"> ${stars}</span></div></div>
+        <div class="kpi"><div class="kpi-label">Deliveries</div><div class="kpi-value">${r.completed}</div></div>
+        <div class="kpi"><div class="kpi-label">Preferred by</div><div class="kpi-value">${r.preferred_count}</div></div>
+      </div>
+
+      <div class="mt-8">
+        <div class="text-xs uppercase tracking-widest text-charcoal/40 mb-3">Delivery zones</div>
+        <div class="flex flex-wrap gap-2">${r.zones.map(z => `<span class="badge badge-zone">${z}</span>`).join("")}</div>
+      </div>
+
+      <div class="mt-8 grid sm:grid-cols-2 gap-3">
+        <div class="bg-white rounded-2xl border border-charcoal/5 p-5">
+          <div class="text-xs uppercase tracking-widest text-charcoal/40">Base fee</div>
+          <div class="font-display text-3xl mt-1">₱${r.base_fee}</div>
+        </div>
+        <div class="bg-white rounded-2xl border border-charcoal/5 p-5">
+          <div class="text-xs uppercase tracking-widest text-charcoal/40">Per kilometer</div>
+          <div class="font-display text-3xl mt-1">${r.per_km_fee ? "₱"+r.per_km_fee : "Flat"}</div>
+        </div>
+      </div>
+
+      <div class="mt-10 p-5 rounded-2xl bg-warm border border-charcoal/5 text-sm text-charcoal/70 leading-relaxed">
+        Coordination happens off-platform. Tap WhatsApp or Call to introduce yourself, share pickup details, and confirm timing. Dispatch is the connection layer — the relationship is yours.
+      </div>
+    </section>
+  </div>
+`;
+
+document.getElementById("favBtn").addEventListener("click", async () => {
+  const list = await togglePreferred(null, r.id);
+  toast(list.includes(r.id) ? "Saved as preferred" : "Removed");
+  setTimeout(() => location.reload(), 600);
+});
+</script>
+</body>
+</html>

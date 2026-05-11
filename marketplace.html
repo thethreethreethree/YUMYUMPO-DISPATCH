@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Rider Marketplace · YUMYUMPO Dispatch</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/styles.css"/>
+<script>
+  tailwind.config = { theme: { extend: {
+    colors: { cream:'#FBF7F0', warm:'#F5EFE4', beige:'#E9DFCB', charcoal:'#161412', ink:'#1E1B17', ember:'#E5631F', dust:'#A89F90' },
+    fontFamily: { display:['Fraunces','serif'], sans:['Inter','system-ui','sans-serif'] }
+  }}};
+</script>
+</head>
+<body class="bg-cream text-charcoal font-sans">
+
+<header class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-cream/70 border-b border-charcoal/5">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 h-16 flex items-center justify-between">
+    <a href="./index.html" class="flex items-center gap-2">
+      <span class="w-8 h-8 rounded-full bg-charcoal text-cream grid place-items-center font-display text-sm">Y</span>
+      <span class="font-display text-lg">YUMYUMPO <span class="text-ember">Dispatch</span></span>
+    </a>
+    <nav class="hidden md:flex items-center gap-8 text-sm text-charcoal/70">
+      <a href="./restaurants.html" class="hover:text-charcoal">Restaurants</a>
+      <a href="./riders.html" class="hover:text-charcoal">Riders</a>
+      <a href="./marketplace.html" class="text-charcoal">Marketplace</a>
+      <a href="./about.html" class="hover:text-charcoal">About</a>
+    </nav>
+    <a href="./auth.html" class="btn-primary !py-2 !px-4 text-sm">Sign in</a>
+  </div>
+</header>
+
+<section class="pt-28 pb-10 border-b border-charcoal/5">
+  <div class="max-w-7xl mx-auto px-5 md:px-8">
+    <div class="text-xs uppercase tracking-[0.18em] text-ember mb-3">Open marketplace</div>
+    <h1 class="font-display text-4xl md:text-6xl tracking-tight">Independent riders, ready to roll.</h1>
+    <p class="mt-4 text-charcoal/70 max-w-xl">Browse verified delivery partners across our network. Filter, favorite, and contact them directly.</p>
+  </div>
+</section>
+
+<section class="py-8 sticky top-16 z-40 bg-cream/85 backdrop-blur border-b border-charcoal/5">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 flex flex-wrap gap-2 items-center">
+    <select id="filterZone" class="field !w-auto !py-2"><option value="">All zones</option></select>
+    <select id="filterVehicle" class="field !w-auto !py-2"><option value="">Any vehicle</option></select>
+    <select id="filterStatus" class="field !w-auto !py-2">
+      <option value="">Any status</option><option value="online">Online</option><option value="available">Available</option><option value="busy">Busy</option><option value="offline">Offline</option>
+    </select>
+    <label class="inline-flex items-center gap-2 text-xs text-charcoal/70 px-3 py-2 rounded-full border border-charcoal/10 cursor-pointer">
+      <input type="checkbox" id="filterVerified" class="accent-ember"/> Verified only
+    </label>
+    <div class="ml-auto text-sm text-charcoal/60" id="resultCount">—</div>
+  </div>
+</section>
+
+<section class="py-10">
+  <div class="max-w-7xl mx-auto px-5 md:px-8">
+    <div id="grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+  </div>
+</section>
+
+<footer class="border-t border-charcoal/10 py-8 text-center text-xs text-charcoal/40">© 2026 YUMYUMPO Dispatch</footer>
+
+<script type="module">
+import { fetchRiders, togglePreferred, getPreferred, enums } from "./assets/js/api.js";
+import { riderCard, emptyState, toast } from "./assets/js/components.js";
+
+const zoneSel = document.getElementById("filterZone");
+enums.ZONES.forEach(z => zoneSel.insertAdjacentHTML("beforeend", `<option>${z}</option>`));
+const vehSel = document.getElementById("filterVehicle");
+enums.VEHICLES.forEach(v => vehSel.insertAdjacentHTML("beforeend", `<option value="${v}">${v}</option>`));
+
+async function render() {
+  const data = await fetchRiders({
+    zone: zoneSel.value || undefined,
+    vehicle: vehSel.value || undefined,
+    status: document.getElementById("filterStatus").value || undefined,
+    verifiedOnly: document.getElementById("filterVerified").checked,
+  });
+  const pref = getPreferred();
+  document.getElementById("resultCount").textContent = `${data.length} rider${data.length===1?"":"s"}`;
+  const grid = document.getElementById("grid");
+  grid.innerHTML = data.length
+    ? data.map(r => `<a href="./rider.html?id=${r.id}" class="block">${riderCard(r, { preferred: pref.includes(r.id) })}</a>`).join("")
+    : emptyState("No riders match", "Try widening your filters.");
+  document.querySelectorAll(".fav-btn").forEach(b => {
+    b.addEventListener("click", async (e) => {
+      e.preventDefault(); e.stopPropagation();
+      const list = await togglePreferred(null, b.dataset.rider);
+      toast(list.includes(b.dataset.rider) ? "Saved" : "Removed");
+      render();
+    });
+  });
+}
+["filterZone","filterVehicle","filterStatus","filterVerified"].forEach(id =>
+  document.getElementById(id).addEventListener("change", render));
+render();
+</script>
+</body>
+</html>

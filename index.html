@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>YUMYUMPO DISPATCH — Hospitality Delivery Coordination</title>
+<meta name="description" content="Independent rider infrastructure for modern hospitality businesses. Decentralized delivery coordination across the Philippines." />
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/styles.css" />
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          cream: '#FBF7F0',
+          warm: '#F5EFE4',
+          beige: '#E9DFCB',
+          charcoal: '#161412',
+          ink: '#1E1B17',
+          ember: '#E5631F',
+          dust: '#A89F90',
+        },
+        fontFamily: {
+          display: ['Fraunces', 'serif'],
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+        },
+      },
+    },
+  };
+</script>
+</head>
+<body class="bg-cream text-charcoal font-sans antialiased">
+
+<!-- NAV -->
+<header class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-cream/70 border-b border-charcoal/5">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 h-16 flex items-center justify-between">
+    <a href="./index.html" class="flex items-center gap-2">
+      <span class="w-8 h-8 rounded-full bg-charcoal text-cream grid place-items-center font-display text-sm">Y</span>
+      <span class="font-display text-lg tracking-tight">YUMYUMPO <span class="text-ember">Dispatch</span></span>
+    </a>
+    <nav class="hidden md:flex items-center gap-8 text-sm text-charcoal/70">
+      <a href="./restaurants.html" class="hover:text-charcoal transition">Restaurants</a>
+      <a href="./riders.html" class="hover:text-charcoal transition">Riders</a>
+      <a href="./marketplace.html" class="hover:text-charcoal transition">Marketplace</a>
+      <a href="./about.html" class="hover:text-charcoal transition">About</a>
+    </nav>
+    <div class="flex items-center gap-2">
+      <a href="./auth.html" class="hidden md:inline-flex text-sm text-charcoal/70 hover:text-charcoal px-3 py-2">Sign in</a>
+      <a href="./auth.html?role=rider" class="inline-flex items-center gap-2 text-sm bg-charcoal text-cream px-4 py-2 rounded-full hover:bg-ink transition">
+        Join as rider
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="relative pt-32 md:pt-44 pb-20 md:pb-32 overflow-hidden">
+  <div class="absolute inset-0 hero-gradient pointer-events-none"></div>
+  <div class="absolute inset-0 grain opacity-[0.04] pointer-events-none"></div>
+  <div class="relative max-w-7xl mx-auto px-5 md:px-8 grid lg:grid-cols-12 gap-12 items-end">
+    <div class="lg:col-span-7">
+      <div class="inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-charcoal/60 mb-8">
+        <span class="w-1.5 h-1.5 rounded-full bg-ember animate-pulse"></span>
+        Independent rider infrastructure
+      </div>
+      <h1 class="font-display text-[44px] sm:text-6xl md:text-7xl lg:text-[88px] leading-[0.95] tracking-[-0.035em]">
+        Modern hospitality<br/>
+        <span class="italic font-normal text-ember">delivery</span> coordination.
+      </h1>
+      <p class="mt-8 max-w-xl text-lg text-charcoal/70 leading-relaxed">
+        Restaurants meet trusted independent riders. No fleets. No middlemen. Just relationships and tools to coordinate fulfillment, your way.
+      </p>
+      <div class="mt-10 flex flex-col sm:flex-row gap-3">
+        <a href="./restaurants.html" class="inline-flex items-center justify-center gap-2 bg-charcoal text-cream px-6 py-4 rounded-full text-sm font-medium hover:bg-ink transition group">
+          For Restaurants
+          <svg class="transition-transform group-hover:translate-x-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </a>
+        <a href="./riders.html" class="inline-flex items-center justify-center gap-2 border border-charcoal/15 bg-cream/60 px-6 py-4 rounded-full text-sm font-medium hover:bg-warm transition">
+          For Riders
+        </a>
+      </div>
+    </div>
+    <div class="lg:col-span-5">
+      <div class="relative">
+        <div class="rounded-3xl overflow-hidden shadow-[0_30px_80px_-30px_rgba(22,20,18,0.3)] bg-warm aspect-[4/5]">
+          <img src="https://images.unsplash.com/photo-1587814213271-7a6625b76c33?w=900&q=80" alt="Rider" class="w-full h-full object-cover" loading="lazy"/>
+        </div>
+        <div class="absolute -bottom-6 -left-6 bg-cream rounded-2xl border border-charcoal/5 p-4 shadow-xl flex items-center gap-3 max-w-[240px]">
+          <div class="w-10 h-10 rounded-full bg-ember/10 grid place-items-center">
+            <span class="text-ember text-lg">●</span>
+          </div>
+          <div>
+            <div class="text-xs text-charcoal/60">Online now</div>
+            <div class="font-display text-xl">142 riders</div>
+          </div>
+        </div>
+        <div class="absolute -top-6 -right-2 bg-charcoal text-cream rounded-2xl p-4 shadow-xl max-w-[220px]">
+          <div class="text-[10px] uppercase tracking-widest text-cream/60">El Nido • Cebu • Manila</div>
+          <div class="font-display text-lg mt-1">Covering 14 zones</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VALUES STRIP -->
+<section class="border-y border-charcoal/5 bg-warm/50">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 py-10 grid grid-cols-2 md:grid-cols-4 gap-8">
+    <div>
+      <div class="font-display text-3xl md:text-4xl">No fleets</div>
+      <p class="text-sm text-charcoal/60 mt-1">Riders work independently.</p>
+    </div>
+    <div>
+      <div class="font-display text-3xl md:text-4xl">No payroll</div>
+      <p class="text-sm text-charcoal/60 mt-1">Pricing set by riders.</p>
+    </div>
+    <div>
+      <div class="font-display text-3xl md:text-4xl">No middleman</div>
+      <p class="text-sm text-charcoal/60 mt-1">Direct WhatsApp & calls.</p>
+    </div>
+    <div>
+      <div class="font-display text-3xl md:text-4xl">Verified</div>
+      <p class="text-sm text-charcoal/60 mt-1">Trusted delivery partners.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="py-24 md:py-32">
+  <div class="max-w-7xl mx-auto px-5 md:px-8">
+    <div class="grid md:grid-cols-12 gap-8 mb-16">
+      <div class="md:col-span-5">
+        <div class="text-xs uppercase tracking-[0.18em] text-ember mb-4">How it works</div>
+        <h2 class="font-display text-4xl md:text-5xl tracking-tight">Coordination, not control.</h2>
+      </div>
+      <div class="md:col-span-6 md:col-start-7">
+        <p class="text-charcoal/70 text-lg leading-relaxed">
+          Dispatch is the visibility and connection layer between restaurants and independent delivery partners. We don't dispatch you — we introduce you.
+        </p>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-4">
+      <div class="step-card">
+        <div class="step-num">01</div>
+        <h3 class="font-display text-xl mt-6 mb-2">Restaurant signals demand</h3>
+        <p class="text-sm text-charcoal/60 leading-relaxed">A restaurant posts a delivery request to riders online in their zone.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">02</div>
+        <h3 class="font-display text-xl mt-6 mb-2">Riders see opportunity</h3>
+        <p class="text-sm text-charcoal/60 leading-relaxed">Online riders in matching zones get notified and choose to accept.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">03</div>
+        <h3 class="font-display text-xl mt-6 mb-2">Direct contact, off-platform</h3>
+        <p class="text-sm text-charcoal/60 leading-relaxed">Coordinate the pickup directly via WhatsApp or a phone call.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURE SPLIT -->
+<section class="py-20 bg-charcoal text-cream relative overflow-hidden">
+  <div class="absolute inset-0 grain opacity-[0.06] pointer-events-none"></div>
+  <div class="relative max-w-7xl mx-auto px-5 md:px-8 grid lg:grid-cols-2 gap-16 items-center">
+    <div>
+      <div class="text-xs uppercase tracking-[0.18em] text-ember mb-4">For restaurants</div>
+      <h2 class="font-display text-4xl md:text-5xl leading-[1.05] tracking-tight">Build your own trusted delivery team.</h2>
+      <p class="mt-6 text-cream/70 leading-relaxed max-w-md">
+        See who's online, where they're working, and what they charge. Favorite the riders who never let you down.
+      </p>
+      <ul class="mt-8 space-y-3 text-sm">
+        <li class="flex items-center gap-3"><span class="text-ember">→</span> Filter by zone, vehicle, availability</li>
+        <li class="flex items-center gap-3"><span class="text-ember">→</span> Save preferred riders</li>
+        <li class="flex items-center gap-3"><span class="text-ember">→</span> Rate punctuality, food handling, comms</li>
+        <li class="flex items-center gap-3"><span class="text-ember">→</span> Contact via WhatsApp or call</li>
+      </ul>
+      <a href="./restaurants.html" class="inline-flex mt-10 items-center gap-2 bg-cream text-charcoal px-6 py-4 rounded-full text-sm font-medium hover:bg-warm transition">
+        Open restaurant dashboard
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+      <div class="rounded-2xl overflow-hidden aspect-[3/4]"><img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80" class="w-full h-full object-cover" loading="lazy"/></div>
+      <div class="rounded-2xl overflow-hidden aspect-[3/4] mt-8"><img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80" class="w-full h-full object-cover" loading="lazy"/></div>
+    </div>
+  </div>
+</section>
+
+<!-- RIDER FEATURE -->
+<section class="py-24 md:py-32 bg-warm">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 grid lg:grid-cols-2 gap-16 items-center">
+    <div class="order-2 lg:order-1 grid grid-cols-2 gap-4">
+      <div class="rounded-2xl overflow-hidden aspect-square mt-8"><img src="https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=600&q=80" class="w-full h-full object-cover" loading="lazy"/></div>
+      <div class="rounded-2xl overflow-hidden aspect-square"><img src="https://images.unsplash.com/photo-1601758174039-3d3c8ee04afd?w=600&q=80" class="w-full h-full object-cover" loading="lazy"/></div>
+    </div>
+    <div class="order-1 lg:order-2">
+      <div class="text-xs uppercase tracking-[0.18em] text-ember mb-4">For riders</div>
+      <h2 class="font-display text-4xl md:text-5xl leading-[1.05] tracking-tight">Independent. Visible. Respected.</h2>
+      <p class="mt-6 text-charcoal/70 leading-relaxed max-w-md">
+        You set your zones. You set your prices. You decide which jobs to take. Build long-term relationships with restaurants who trust you.
+      </p>
+      <ul class="mt-8 space-y-3 text-sm">
+        <li class="flex items-center gap-3"><span class="text-ember">→</span> Set base fee + per-km rate</li>
+        <li class="flex items-center gap-3"><span class="text-ember">→</span> Verified badge for trust</li>
+        <li class="flex items-center gap-3"><span class="text-ember">→</span> Track completed deliveries</li>
+        <li class="flex items-center gap-3"><span class="text-ember">→</span> Accept only what works for you</li>
+      </ul>
+      <a href="./riders.html" class="inline-flex mt-10 items-center gap-2 bg-charcoal text-cream px-6 py-4 rounded-full text-sm font-medium hover:bg-ink transition">
+        Join the marketplace
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ZONES -->
+<section class="py-24 md:py-32">
+  <div class="max-w-7xl mx-auto px-5 md:px-8">
+    <div class="flex items-end justify-between flex-wrap gap-6 mb-10">
+      <div>
+        <div class="text-xs uppercase tracking-[0.18em] text-ember mb-4">Live coverage</div>
+        <h2 class="font-display text-4xl md:text-5xl tracking-tight">Zones we operate in.</h2>
+      </div>
+      <a href="./marketplace.html" class="text-sm underline underline-offset-4 hover:text-ember">View marketplace →</a>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div class="zone-card"><div class="font-display text-lg">El Nido Town Proper</div><div class="text-xs text-charcoal/60 mt-1">Palawan · 38 riders</div></div>
+      <div class="zone-card"><div class="font-display text-lg">Corong-Corong</div><div class="text-xs text-charcoal/60 mt-1">Palawan · 22 riders</div></div>
+      <div class="zone-card"><div class="font-display text-lg">Las Cabanas</div><div class="text-xs text-charcoal/60 mt-1">Palawan · 14 riders</div></div>
+      <div class="zone-card"><div class="font-display text-lg">General Luna</div><div class="text-xs text-charcoal/60 mt-1">Siargao · 27 riders</div></div>
+      <div class="zone-card"><div class="font-display text-lg">Cebu IT Park</div><div class="text-xs text-charcoal/60 mt-1">Cebu · 46 riders</div></div>
+      <div class="zone-card"><div class="font-display text-lg">Lahug</div><div class="text-xs text-charcoal/60 mt-1">Cebu · 31 riders</div></div>
+      <div class="zone-card"><div class="font-display text-lg">Poblacion</div><div class="text-xs text-charcoal/60 mt-1">Makati · 58 riders</div></div>
+      <div class="zone-card"><div class="font-display text-lg">BGC</div><div class="text-xs text-charcoal/60 mt-1">Taguig · 64 riders</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST -->
+<section class="py-24 bg-cream border-t border-charcoal/5">
+  <div class="max-w-4xl mx-auto px-5 md:px-8 text-center">
+    <div class="text-xs uppercase tracking-[0.18em] text-ember mb-6">Trust infrastructure</div>
+    <h2 class="font-display text-4xl md:text-5xl tracking-tight leading-[1.05]">
+      Verified humans.<br/><span class="italic">Real relationships.</span>
+    </h2>
+    <p class="mt-6 text-charcoal/70 leading-relaxed">
+      Every rider is verified through ID, selfie, phone, and a community-oriented video review. No bots. No ghost accounts. Just neighbors.
+    </p>
+    <div class="mt-12 inline-flex items-center gap-2 px-5 py-3 rounded-full bg-warm border border-charcoal/10 text-sm">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-ember"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>
+      Verified Delivery Partner
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="py-24 md:py-32">
+  <div class="max-w-7xl mx-auto px-5 md:px-8">
+    <div class="rounded-3xl bg-charcoal text-cream p-10 md:p-20 relative overflow-hidden">
+      <div class="absolute inset-0 grain opacity-[0.06]"></div>
+      <div class="absolute -right-20 -bottom-20 w-96 h-96 rounded-full bg-ember/20 blur-3xl"></div>
+      <div class="relative grid lg:grid-cols-2 gap-10 items-end">
+        <h2 class="font-display text-4xl md:text-6xl leading-[1.0] tracking-tight">
+          Hospitality runs<br/>on relationships.
+        </h2>
+        <div>
+          <p class="text-cream/70 mb-8 max-w-md">Join the platform built around the people who actually make delivery work.</p>
+          <div class="flex flex-col sm:flex-row gap-3">
+            <a href="./auth.html?role=restaurant" class="inline-flex items-center justify-center bg-cream text-charcoal px-6 py-4 rounded-full text-sm font-medium hover:bg-warm transition">I run a restaurant</a>
+            <a href="./auth.html?role=rider" class="inline-flex items-center justify-center border border-cream/20 px-6 py-4 rounded-full text-sm font-medium hover:bg-cream/5 transition">I'm a rider</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="border-t border-charcoal/10 py-12">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 grid md:grid-cols-4 gap-8">
+    <div>
+      <div class="flex items-center gap-2 mb-3">
+        <span class="w-8 h-8 rounded-full bg-charcoal text-cream grid place-items-center font-display text-sm">Y</span>
+        <span class="font-display text-lg">YUMYUMPO Dispatch</span>
+      </div>
+      <p class="text-xs text-charcoal/50 leading-relaxed">Independent rider infrastructure for modern hospitality.</p>
+    </div>
+    <div>
+      <div class="text-xs uppercase tracking-widest text-charcoal/40 mb-3">Platform</div>
+      <ul class="space-y-2 text-sm">
+        <li><a href="./restaurants.html" class="hover:text-ember">Restaurants</a></li>
+        <li><a href="./riders.html" class="hover:text-ember">Riders</a></li>
+        <li><a href="./marketplace.html" class="hover:text-ember">Marketplace</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="text-xs uppercase tracking-widest text-charcoal/40 mb-3">Trust</div>
+      <ul class="space-y-2 text-sm">
+        <li><a href="./about.html" class="hover:text-ember">About</a></li>
+        <li><a href="./admin.html" class="hover:text-ember">Admin</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="text-xs uppercase tracking-widest text-charcoal/40 mb-3">Network</div>
+      <ul class="space-y-2 text-sm">
+        <li><a href="https://thethreethreethree.github.io/YUMYUMPO/" target="_blank" class="hover:text-ember">YUMYUMPO Discovery ↗</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="max-w-7xl mx-auto px-5 md:px-8 mt-10 pt-6 border-t border-charcoal/5 text-xs text-charcoal/40 flex justify-between flex-wrap gap-3">
+    <span>© 2026 YUMYUMPO Dispatch. Built for hospitality.</span>
+    <span>Decentralized · Independent · Hospitality-first</span>
+  </div>
+</footer>
+
+<script type="module" src="./assets/js/main.js"></script>
+</body>
+</html>

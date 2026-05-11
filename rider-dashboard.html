@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Rider Dashboard · YUMYUMPO Dispatch</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/styles.css"/>
+<script>
+  tailwind.config = { theme: { extend: {
+    colors: { cream:'#FBF7F0', warm:'#F5EFE4', beige:'#E9DFCB', charcoal:'#161412', ink:'#1E1B17', ember:'#E5631F', dust:'#A89F90' },
+    fontFamily: { display:['Fraunces','serif'], sans:['Inter','system-ui','sans-serif'] }
+  }}};
+</script>
+</head>
+<body class="bg-cream text-charcoal font-sans">
+
+<header class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-cream/70 border-b border-charcoal/5">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 h-16 flex items-center justify-between">
+    <a href="./index.html" class="flex items-center gap-2">
+      <span class="w-8 h-8 rounded-full bg-charcoal text-cream grid place-items-center font-display text-sm">Y</span>
+      <span class="font-display text-lg">Rider</span>
+    </a>
+    <div class="flex items-center gap-3">
+      <span class="text-xs text-charcoal/60">Status</span>
+      <select id="status" class="field !w-auto !py-1.5">
+        <option value="online">Online</option>
+        <option value="available">Available</option>
+        <option value="busy">Busy</option>
+        <option value="offline">Offline</option>
+      </select>
+    </div>
+  </div>
+</header>
+
+<main class="pt-24 pb-24 max-w-5xl mx-auto px-5 md:px-8">
+  <section class="grid md:grid-cols-3 gap-3 mb-8">
+    <div class="kpi"><div class="kpi-label">Today's earnings</div><div class="kpi-value">₱1,240</div></div>
+    <div class="kpi"><div class="kpi-label">Deliveries</div><div class="kpi-value">8</div></div>
+    <div class="kpi"><div class="kpi-label">Rating</div><div class="kpi-value">4.9</div></div>
+  </section>
+
+  <section>
+    <h2 class="font-display text-2xl mb-4">Incoming requests</h2>
+    <div id="incoming" class="space-y-3"></div>
+  </section>
+</main>
+
+<script type="module">
+import { fetchRequests } from "./assets/js/api.js";
+import { toast } from "./assets/js/components.js";
+
+const reqs = (await fetchRequests()).filter(r => r.status === "Available" || r.status === "Accepted");
+const incoming = document.getElementById("incoming");
+incoming.innerHTML = reqs.map(r => `
+  <div class="rider-card flex items-center justify-between gap-4 flex-wrap">
+    <div>
+      <div class="text-xs uppercase tracking-widest text-charcoal/40">${r.restaurant} · ${r.zone}</div>
+      <div class="font-display text-lg mt-1">${r.pickup} → ${r.dropoff}</div>
+      <div class="text-xs text-charcoal/60 mt-1">${r.created}</div>
+    </div>
+    <div class="flex gap-2">
+      <button class="btn-ghost decline">Decline</button>
+      <button class="btn-primary accept">Accept</button>
+    </div>
+  </div>
+`).join("") || `<p class="text-sm text-charcoal/60">No incoming requests right now. Stay online — restaurants will reach you.</p>`;
+
+document.querySelectorAll(".accept").forEach(b => b.addEventListener("click", () => { b.closest(".rider-card").style.opacity = "0.4"; toast("Accepted — restaurant will WhatsApp you"); }));
+document.querySelectorAll(".decline").forEach(b => b.addEventListener("click", () => { b.closest(".rider-card").remove(); }));
+
+document.getElementById("status").addEventListener("change", e => toast("Status: " + e.target.value));
+</script>
+</body>
+</html>

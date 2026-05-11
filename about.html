@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>About · YUMYUMPO Dispatch</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/styles.css"/>
+<script>
+  tailwind.config = { theme: { extend: {
+    colors: { cream:'#FBF7F0', warm:'#F5EFE4', beige:'#E9DFCB', charcoal:'#161412', ink:'#1E1B17', ember:'#E5631F', dust:'#A89F90' },
+    fontFamily: { display:['Fraunces','serif'], sans:['Inter','system-ui','sans-serif'] }
+  }}};
+</script>
+</head>
+<body class="bg-cream text-charcoal font-sans">
+
+<header class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-cream/70 border-b border-charcoal/5">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 h-16 flex items-center justify-between">
+    <a href="./index.html" class="flex items-center gap-2">
+      <span class="w-8 h-8 rounded-full bg-charcoal text-cream grid place-items-center font-display text-sm">Y</span>
+      <span class="font-display text-lg">YUMYUMPO <span class="text-ember">Dispatch</span></span>
+    </a>
+    <a href="./auth.html?role=rider" class="btn-primary !py-2 !px-4 text-sm">Join</a>
+  </div>
+</header>
+
+<section class="pt-32 pb-20 max-w-3xl mx-auto px-5 md:px-8">
+  <div class="text-xs uppercase tracking-widest text-ember mb-3">What we are</div>
+  <h1 class="font-display text-5xl md:text-6xl tracking-tight leading-[1.05]">A connection layer, not a corporation.</h1>
+  <div class="prose prose-lg mt-10 text-charcoal/80 space-y-6 leading-relaxed">
+    <p>YUMYUMPO Dispatch is the official logistics and rider infrastructure partner of <a href="https://thethreethreethree.github.io/YUMYUMPO/" target="_blank" class="text-ember underline underline-offset-4">YUMYUMPO</a>. We're built around a single belief: hospitality runs on relationships, not algorithms.</p>
+    <p>We don't employ riders. We don't own fleets. We don't take a cut of food sales or push aggressive dispatch algorithms onto people who deserve better. Dispatch is a place where independent delivery partners are visible, verified, and reachable — and where restaurants can build their own trusted delivery teams.</p>
+    <p>Coordination happens off-platform — WhatsApp, calls, the way real businesses already operate. What we provide is the visibility, the trust infrastructure, and the connection.</p>
+  </div>
+</section>
+
+<section class="py-20 bg-warm">
+  <div class="max-w-5xl mx-auto px-5 md:px-8 grid md:grid-cols-3 gap-4 text-center">
+    <div><div class="font-display text-4xl">Decentralized</div><p class="text-sm text-charcoal/60 mt-2">No central dispatch. No algorithmic control.</p></div>
+    <div><div class="font-display text-4xl">Independent</div><p class="text-sm text-charcoal/60 mt-2">Riders set their own zones and pricing.</p></div>
+    <div><div class="font-display text-4xl">Hospitality-first</div><p class="text-sm text-charcoal/60 mt-2">Designed around the way kitchens actually work.</p></div>
+  </div>
+</section>
+
+<footer class="border-t border-charcoal/10 py-8 text-center text-xs text-charcoal/40">© 2026 YUMYUMPO Dispatch</footer>
+</body>
+</html>

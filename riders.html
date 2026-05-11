@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>For Riders · YUMYUMPO Dispatch</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/styles.css"/>
+<script>
+  tailwind.config = { theme: { extend: {
+    colors: { cream:'#FBF7F0', warm:'#F5EFE4', beige:'#E9DFCB', charcoal:'#161412', ink:'#1E1B17', ember:'#E5631F', dust:'#A89F90' },
+    fontFamily: { display:['Fraunces','serif'], sans:['Inter','system-ui','sans-serif'] }
+  }}};
+</script>
+</head>
+<body class="bg-cream text-charcoal font-sans">
+
+<header class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-cream/70 border-b border-charcoal/5">
+  <div class="max-w-7xl mx-auto px-5 md:px-8 h-16 flex items-center justify-between">
+    <a href="./index.html" class="flex items-center gap-2">
+      <span class="w-8 h-8 rounded-full bg-charcoal text-cream grid place-items-center font-display text-sm">Y</span>
+      <span class="font-display text-lg">YUMYUMPO <span class="text-ember">Dispatch</span></span>
+    </a>
+    <a href="#apply" class="btn-primary !py-2 !px-4 text-sm">Apply to ride</a>
+  </div>
+</header>
+
+<section class="pt-32 pb-16 relative overflow-hidden">
+  <div class="absolute inset-0 hero-gradient pointer-events-none"></div>
+  <div class="relative max-w-5xl mx-auto px-5 md:px-8 text-center">
+    <div class="text-xs uppercase tracking-[0.18em] text-ember mb-4">Independent riders</div>
+    <h1 class="font-display text-5xl md:text-7xl tracking-tight leading-[1.0]">
+      You set the route.<br/><span class="italic text-ember">We open the door.</span>
+    </h1>
+    <p class="mt-6 max-w-xl mx-auto text-charcoal/70">No fleets. No bosses. No predatory commissions. Earn directly from restaurants that already trust you.</p>
+    <a href="#apply" class="btn-primary mt-10">Start verification</a>
+  </div>
+</section>
+
+<section class="py-16 max-w-5xl mx-auto px-5 md:px-8 grid md:grid-cols-3 gap-4">
+  <div class="step-card"><div class="step-num">01</div><h3 class="font-display text-xl mt-6 mb-2">Build your profile</h3><p class="text-sm text-charcoal/60">Photo, vehicle, zones, and your own pricing.</p></div>
+  <div class="step-card"><div class="step-num">02</div><h3 class="font-display text-xl mt-6 mb-2">Get verified</h3><p class="text-sm text-charcoal/60">ID + selfie + phone + community video review.</p></div>
+  <div class="step-card"><div class="step-num">03</div><h3 class="font-display text-xl mt-6 mb-2">Get discovered</h3><p class="text-sm text-charcoal/60">Restaurants reach you directly when you're online.</p></div>
+</section>
+
+<section id="apply" class="py-20 bg-warm">
+  <div class="max-w-2xl mx-auto px-5 md:px-8">
+    <div class="text-xs uppercase tracking-widest text-ember mb-3 text-center">Step 1 — Apply</div>
+    <h2 class="font-display text-4xl text-center tracking-tight mb-10">Create your rider profile</h2>
+
+    <form id="riderForm" class="bg-cream rounded-3xl p-6 md:p-8 border border-charcoal/5 space-y-4">
+      <div class="grid sm:grid-cols-2 gap-3">
+        <div><label class="text-xs text-charcoal/60">Full name</label><input class="field mt-1" name="name" required placeholder="Mark Villanueva"/></div>
+        <div><label class="text-xs text-charcoal/60">Phone</label><input class="field mt-1" name="phone" required placeholder="+639XXXXXXXXX"/></div>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <div><label class="text-xs text-charcoal/60">WhatsApp number</label><input class="field mt-1" name="whatsapp" required placeholder="639XXXXXXXXX"/></div>
+        <div><label class="text-xs text-charcoal/60">Vehicle type</label>
+          <select class="field mt-1" name="vehicle"><option>motorcycle</option><option>bicycle</option><option>scooter</option><option>car</option><option>walking</option></select>
+        </div>
+      </div>
+      <div>
+        <label class="text-xs text-charcoal/60">Delivery zones (pick all that apply)</label>
+        <div id="zoneChips" class="flex flex-wrap gap-2 mt-2"></div>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <div><label class="text-xs text-charcoal/60">Base fee (₱)</label><input class="field mt-1" type="number" name="base_fee" required value="60"/></div>
+        <div><label class="text-xs text-charcoal/60">Per kilometer (₱)</label><input class="field mt-1" type="number" name="per_km_fee" value="12"/></div>
+      </div>
+
+      <div class="pt-4 border-t border-charcoal/5">
+        <div class="text-xs uppercase tracking-widest text-ember mb-3">Verification</div>
+        <div class="grid sm:grid-cols-3 gap-3">
+          <label class="upload">
+            <span>Government ID</span>
+            <input type="file" name="gov_id" accept="image/*" required/>
+          </label>
+          <label class="upload">
+            <span>Selfie</span>
+            <input type="file" name="selfie" accept="image/*" required/>
+          </label>
+          <label class="upload">
+            <span>Video intro (15s)</span>
+            <input type="file" name="video" accept="video/*"/>
+          </label>
+        </div>
+        <p class="text-xs text-charcoal/50 mt-3 leading-relaxed">Verification is a respectful community review — usually approved within 24h. We never sell or share your documents.</p>
+      </div>
+
+      <button class="btn-primary w-full !py-4 mt-4">Submit application</button>
+    </form>
+  </div>
+</section>
+
+<style>
+.upload { display:flex; flex-direction:column; gap:6px; padding:14px; background:#FBF7F0; border:1px dashed rgba(22,20,18,0.18); border-radius:14px; font-size:12px; color:rgba(22,20,18,0.6); cursor:pointer; transition: border-color 200ms, background 200ms; }
+.upload:hover { border-color:#E5631F; background:#fff; }
+.upload input { font-size:11px; }
+.zone-chip { padding:6px 12px; border:1px solid rgba(22,20,18,0.12); border-radius:999px; font-size:12px; cursor:pointer; transition: all 180ms; }
+.zone-chip.on { background:#161412; color:#FBF7F0; border-color:#161412; }
+</style>
+
+<footer class="border-t border-charcoal/10 py-8 text-center text-xs text-charcoal/40">© 2026 YUMYUMPO Dispatch</footer>
+
+<script type="module">
+import { enums, submitVerification } from "./assets/js/api.js";
+import { toast } from "./assets/js/components.js";
+
+const wrap = document.getElementById("zoneChips");
+const chosen = new Set();
+enums.ZONES.forEach(z => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "zone-chip"; b.textContent = z;
+  b.addEventListener("click", () => { b.classList.toggle("on"); if (chosen.has(z)) chosen.delete(z); else chosen.add(z); });
+  wrap.appendChild(b);
+});
+
+document.getElementById("riderForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const payload = Object.fromEntries([...fd.entries()].filter(([k,v]) => typeof v === "string"));
+  payload.delivery_zones = [...chosen];
+  await submitVerification(payload);
+  toast("Application sent — we'll review within 24h");
+  e.target.reset();
+  document.querySelectorAll(".zone-chip.on").forEach(b => b.classList.remove("on"));
+  chosen.clear();
+});
+</script>
+</body>
+</html>

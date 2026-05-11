@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin · YUMYUMPO Dispatch</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/styles.css"/>
+<script>
+  tailwind.config = { theme: { extend: {
+    colors: { cream:'#FBF7F0', warm:'#F5EFE4', beige:'#E9DFCB', charcoal:'#161412', ink:'#1E1B17', ember:'#E5631F', dust:'#A89F90' },
+    fontFamily: { display:['Fraunces','serif'], sans:['Inter','system-ui','sans-serif'] }
+  }}};
+</script>
+</head>
+<body class="bg-cream text-charcoal font-sans">
+
+<div class="dash-shell">
+  <aside class="dash-side">
+    <a href="./index.html" class="flex items-center gap-2 mb-10">
+      <span class="w-8 h-8 rounded-full bg-cream text-charcoal grid place-items-center font-display">Y</span>
+      <span class="font-display text-base">Admin</span>
+    </a>
+    <div class="text-[10px] uppercase tracking-widest text-cream/40 mb-3 px-3">Ecosystem</div>
+    <nav class="dash-nav space-y-1">
+      <a href="#" class="active" data-pane="verify">Verifications</a>
+      <a href="#" data-pane="riders">All Riders</a>
+      <a href="#" data-pane="restaurants">Restaurants</a>
+      <a href="#" data-pane="zones">Zones</a>
+      <a href="#" data-pane="analytics">Analytics</a>
+    </nav>
+  </aside>
+  <main class="dash-main">
+    <header class="mb-8">
+      <div class="text-xs uppercase tracking-widest text-charcoal/50">Operations admin</div>
+      <h1 class="font-display text-3xl md:text-4xl mt-1">Ecosystem overview</h1>
+    </header>
+
+    <section class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+      <div class="kpi"><div class="kpi-label">Pending</div><div class="kpi-value" id="kpiPending">3</div></div>
+      <div class="kpi"><div class="kpi-label">Verified riders</div><div class="kpi-value" id="kpiVerified">—</div></div>
+      <div class="kpi"><div class="kpi-label">Active zones</div><div class="kpi-value">8</div></div>
+      <div class="kpi"><div class="kpi-label">Deliveries (24h)</div><div class="kpi-value">142</div></div>
+    </section>
+
+    <section id="pane-verify">
+      <h2 class="font-display text-2xl mb-5">Pending Verifications</h2>
+      <div id="verifyList" class="space-y-3"></div>
+    </section>
+
+    <section id="pane-riders" class="hidden mt-10">
+      <h2 class="font-display text-2xl mb-5">All Riders</h2>
+      <div id="riderTable" class="bg-white rounded-2xl border border-charcoal/5 overflow-hidden"></div>
+    </section>
+
+    <section id="pane-restaurants" class="hidden mt-10">
+      <h2 class="font-display text-2xl mb-5">Restaurants</h2>
+      <div class="bg-white rounded-2xl border border-charcoal/5 p-5 text-sm">
+        <ul class="space-y-3">
+          <li class="flex items-center justify-between"><span>Tasteful Kitchen — El Nido</span><span class="badge badge-verified">Active</span></li>
+          <li class="flex items-center justify-between"><span>Harvest House — Cebu IT Park</span><span class="badge badge-verified">Active</span></li>
+          <li class="flex items-center justify-between"><span>Casa Marina — Poblacion</span><span class="badge badge-verified">Active</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="pane-zones" class="hidden mt-10">
+      <h2 class="font-display text-2xl mb-5">Delivery Zones</h2>
+      <div id="zoneAdmin" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+    </section>
+
+    <section id="pane-analytics" class="hidden mt-10">
+      <h2 class="font-display text-2xl mb-5">Analytics</h2>
+      <div class="grid md:grid-cols-2 gap-3">
+        <div class="kpi"><div class="kpi-label">Avg rider rating</div><div class="kpi-value">4.78</div></div>
+        <div class="kpi"><div class="kpi-label">Acceptance rate</div><div class="kpi-value">86%</div></div>
+        <div class="kpi"><div class="kpi-label">Most active zone</div><div class="kpi-value text-2xl">BGC</div></div>
+        <div class="kpi"><div class="kpi-label">Top rider</div><div class="kpi-value text-2xl">Carlo B.</div></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script type="module">
+import { fetchRiders, enums } from "./assets/js/api.js";
+import { toast } from "./assets/js/components.js";
+
+document.querySelectorAll("[data-pane]").forEach(a => {
+  a.addEventListener("click", e => {
+    e.preventDefault();
+    document.querySelectorAll("[data-pane]").forEach(x => x.classList.remove("active"));
+    a.classList.add("active");
+    ["verify","riders","restaurants","zones","analytics"].forEach(p =>
+      document.getElementById("pane-"+p).classList.toggle("hidden", p !== a.dataset.pane));
+  });
+});
+
+const pendingMock = [
+  { name:"Andrea Lim", vehicle:"motorcycle", zones:["BGC"], photo:"https://i.pravatar.cc/120?img=20" },
+  { name:"Joel Tan",   vehicle:"scooter",    zones:["Cebu IT Park"], photo:"https://i.pravatar.cc/120?img=53" },
+  { name:"Mika Reyes", vehicle:"bicycle",    zones:["Las Cabanas"], photo:"https://i.pravatar.cc/120?img=37" },
+];
+const verifyList = document.getElementById("verifyList");
+verifyList.innerHTML = pendingMock.map((p,i) => `
+  <div class="bg-white border border-charcoal/5 rounded-2xl p-5 flex items-center gap-4">
+    <img src="${p.photo}" class="w-14 h-14 rounded-full object-cover"/>
+    <div class="flex-1">
+      <div class="font-display text-lg">${p.name}</div>
+      <div class="text-xs text-charcoal/60 capitalize">${p.vehicle} · ${p.zones.join(", ")}</div>
+    </div>
+    <div class="flex gap-2">
+      <button class="btn-ghost reject" data-i="${i}">Reject</button>
+      <button class="btn-primary approve" data-i="${i}">Approve</button>
+    </div>
+  </div>
+`).join("");
+document.querySelectorAll(".approve").forEach(b => b.addEventListener("click", () => {
+  b.closest(".bg-white").style.opacity = "0.4"; toast("Rider approved");
+}));
+document.querySelectorAll(".reject").forEach(b => b.addEventListener("click", () => {
+  b.closest(".bg-white").style.opacity = "0.4"; toast("Application rejected");
+}));
+
+const riders = await fetchRiders();
+document.getElementById("kpiVerified").textContent = riders.filter(r => r.verified).length;
+document.getElementById("riderTable").innerHTML = `
+  <table class="w-full text-sm">
+    <thead class="bg-warm"><tr class="text-left text-charcoal/60">
+      <th class="p-4 font-normal">Name</th><th class="p-4 font-normal">Vehicle</th>
+      <th class="p-4 font-normal">Zones</th><th class="p-4 font-normal">Rating</th>
+      <th class="p-4 font-normal">Status</th><th class="p-4 font-normal"></th>
+    </tr></thead>
+    <tbody>${riders.map(r => `
+      <tr class="border-t border-charcoal/5">
+        <td class="p-4 flex items-center gap-2"><img src="${r.photo}" class="w-7 h-7 rounded-full"/>${r.name}</td>
+        <td class="p-4 capitalize">${r.vehicle}</td>
+        <td class="p-4 text-charcoal/60">${r.zones.join(", ")}</td>
+        <td class="p-4">${r.rating.toFixed(1)}</td>
+        <td class="p-4"><span class="status-dot status-${r.status}"></span> <span class="capitalize">${r.status}</span></td>
+        <td class="p-4 text-right"><button class="text-xs text-ember hover:underline">Suspend</button></td>
+      </tr>`).join("")}
+    </tbody>
+  </table>`;
+
+const za = document.getElementById("zoneAdmin");
+za.innerHTML = enums.ZONES.map(z => `
+  <div class="bg-white border border-charcoal/5 rounded-2xl p-4 flex items-center justify-between">
+    <div class="font-display">${z}</div>
+    <span class="badge badge-verified">Active</span>
+  </div>`).join("");
+</script>
+</body>
+</html>

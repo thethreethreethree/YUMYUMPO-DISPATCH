@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sign in · YUMYUMPO Dispatch</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/styles.css"/>
+<script>
+  tailwind.config = { theme: { extend: {
+    colors: { cream:'#FBF7F0', warm:'#F5EFE4', beige:'#E9DFCB', charcoal:'#161412', ink:'#1E1B17', ember:'#E5631F', dust:'#A89F90' },
+    fontFamily: { display:['Fraunces','serif'], sans:['Inter','system-ui','sans-serif'] }
+  }}};
+</script>
+</head>
+<body class="bg-cream text-charcoal font-sans min-h-screen grid place-items-center px-5">
+
+<div class="max-w-md w-full">
+  <a href="./index.html" class="flex items-center gap-2 mb-10 justify-center">
+    <span class="w-9 h-9 rounded-full bg-charcoal text-cream grid place-items-center font-display">Y</span>
+    <span class="font-display text-xl">YUMYUMPO <span class="text-ember">Dispatch</span></span>
+  </a>
+
+  <div class="bg-white rounded-3xl p-8 border border-charcoal/5 shadow-[0_30px_80px_-40px_rgba(22,20,18,0.2)]">
+    <h1 class="font-display text-3xl tracking-tight">Welcome back</h1>
+    <p class="text-sm text-charcoal/60 mt-1">Sign in to coordinate your hospitality logistics.</p>
+
+    <div class="grid grid-cols-2 gap-2 mt-6">
+      <button class="tab active" data-role="restaurant">I'm a restaurant</button>
+      <button class="tab" data-role="rider">I'm a rider</button>
+    </div>
+
+    <form id="loginForm" class="mt-6 space-y-3">
+      <input class="field" type="email" placeholder="Email" required/>
+      <input class="field" type="password" placeholder="Password" required/>
+      <button class="btn-primary w-full !py-3.5">Continue</button>
+    </form>
+
+    <div class="text-center text-xs text-charcoal/50 mt-6">
+      New here? <a href="./riders.html" class="text-ember hover:underline">Apply as rider</a> · <a href="./restaurants.html" class="text-ember hover:underline">Open restaurant dashboard</a>
+    </div>
+  </div>
+
+  <p class="text-center text-xs text-charcoal/40 mt-6">Demo mode — any credentials work.</p>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+if (params.get("role") === "rider") {
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.role === "rider"));
+}
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", e => {
+  e.preventDefault();
+  document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+  t.classList.add("active");
+}));
+document.getElementById("loginForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const role = document.querySelector(".tab.active").dataset.role;
+  location.href = role === "rider" ? "./rider-dashboard.html" : "./restaurants.html";
+});
+</script>
+</body>
+</html>
