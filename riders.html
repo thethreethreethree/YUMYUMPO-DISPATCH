@@ -5,12 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>For Riders · YUMYUMPO Dispatch</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./assets/css/styles.css"/>
 <script>
   tailwind.config = { theme: { extend: {
-    colors: { cream:'#FBF7F0', warm:'#F5EFE4', beige:'#E9DFCB', charcoal:'#161412', ink:'#1E1B17', ember:'#E5631F', dust:'#A89F90' },
-    fontFamily: { display:['Fraunces','serif'], sans:['Inter','system-ui','sans-serif'] }
+    colors: {
+      'brand-yellow':'#FFD000','yellow-dark':'#E6BB00','yellow-light':'#FFF9D6','yellow-pale':'#FFFDF0',
+      'brand-black':'#111111','black-soft':'#1E1E1E',
+      'gray-50':'#F9F9F9','gray-100':'#F3F3F3','gray-200':'#E8E8E8','gray-400':'#ABABAB','gray-600':'#6B6B6B',
+      cream:'#FFFFFF', warm:'#F9F9F9', beige:'#FFF9D6', charcoal:'#111111', ink:'#1E1E1E', ember:'#FFD000', dust:'#6B6B6B'
+    },
+    fontFamily: { display:['"Space Grotesk"','Inter','system-ui','sans-serif'], sans:['Inter','system-ui','sans-serif'] }
   }}};
 </script>
 </head>
@@ -93,13 +98,6 @@
   </div>
 </section>
 
-<style>
-.upload { display:flex; flex-direction:column; gap:6px; padding:14px; background:#FBF7F0; border:1px dashed rgba(22,20,18,0.18); border-radius:14px; font-size:12px; color:rgba(22,20,18,0.6); cursor:pointer; transition: border-color 200ms, background 200ms; }
-.upload:hover { border-color:#E5631F; background:#fff; }
-.upload input { font-size:11px; }
-.zone-chip { padding:6px 12px; border:1px solid rgba(22,20,18,0.12); border-radius:999px; font-size:12px; cursor:pointer; transition: all 180ms; }
-.zone-chip.on { background:#161412; color:#FBF7F0; border-color:#161412; }
-</style>
 
 <footer class="border-t border-charcoal/10 py-8 text-center text-xs text-charcoal/40">© 2026 YUMYUMPO Dispatch</footer>
 
