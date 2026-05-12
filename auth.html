@@ -89,6 +89,7 @@
 
 <script type="module">
 import { isConfigured, signIn, signUp, signInMagicLink, sendPasswordReset, updatePassword, getSession, getCurrentProfile, onAuthChange } from "./assets/js/auth.js";
+import { humanizeError } from "./assets/js/components.js";
 
 const params = new URLSearchParams(location.search);
 const banner = document.getElementById("banner");
@@ -297,7 +298,7 @@ form.addEventListener("submit", async (e) => {
       return;
     }
   } catch (ex) {
-    showError(ex.message || String(ex));
+    showError(humanizeError(ex));
     submitBtn.disabled = false; submitBtn.textContent = origLabel;
   }
 });
@@ -310,7 +311,7 @@ document.getElementById("magicBtn").addEventListener("click", async () => {
   try {
     await signInMagicLink({ email });
     showInfo("Magic link sent. Check your email.");
-  } catch (ex) { showError(ex.message); }
+  } catch (ex) { showError(humanizeError(ex)); }
 });
 </script>
 <script type="module" src="./assets/js/main.js"></script>

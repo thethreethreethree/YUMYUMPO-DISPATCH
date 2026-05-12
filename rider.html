@@ -55,7 +55,7 @@
 <script type="module">
 import { fetchRider, togglePreferred, fetchPreferredRiderIds, getRestaurantByUser } from "./assets/js/api.js";
 import { getUser } from "./assets/js/auth.js";
-import { toast, esc, attr, safeImg, safePhone, num } from "./assets/js/components.js";
+import { toast, toastError, esc, attr, safeImg, safePhone, num } from "./assets/js/components.js";
 
 const id = new URLSearchParams(location.search).get("id");
 if (!id) { location.href = "./marketplace.html"; throw new Error("no id"); }
@@ -136,7 +136,7 @@ document.getElementById("favBtn").addEventListener("click", async () => {
     const list = await togglePreferred(viewerRestaurantId, r.id);
     toast(list.includes(r.id) ? "Saved as preferred" : "Removed");
     setTimeout(() => location.reload(), 600);
-  } catch (e) { toast(e.message); }
+  } catch (e) { toastError(e); }
 });
 </script>
 <script type="module" src="./assets/js/main.js"></script>

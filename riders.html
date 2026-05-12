@@ -129,6 +129,17 @@
         </div>
 
         <div class="pt-4 border-t border-gray-200">
+          <div class="text-xs uppercase tracking-widest font-bold text-yellow-dark mb-3">Profile photo (optional)</div>
+          <div class="flex items-center gap-4">
+            <img id="applyAvatarPreview" alt="" class="w-16 h-16 rounded-2xl object-cover border border-gray-200 bg-gray-100" src="https://placehold.co/120x120/FFD000/111111?text=Y" referrerpolicy="no-referrer"/>
+            <label class="upload !flex-1 !cursor-pointer">
+              <span>Add a clear face photo so restaurants recognise you on arrival</span>
+              <input id="applyAvatarInput" type="file" name="avatar" accept="image/jpeg,image/png,image/webp"/>
+            </label>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-gray-200">
           <div class="text-xs uppercase tracking-widest font-bold text-yellow-dark mb-3">Verification documents</div>
           <div class="grid sm:grid-cols-3 gap-3">
             <label class="upload"><span>Government ID</span><input type="file" name="gov_id" accept="image/*" required/></label>
@@ -198,7 +209,8 @@
 <script type="module">
 import { isConfigured, signUp, getSession, getCurrentProfile } from "./assets/js/auth.js";
 import { renderSessionBadge } from "./assets/js/session-ui.js";
-import { getZones, updateRiderProfile, uploadVerificationFile, submitVerification } from "./assets/js/api.js";
+import { getZones, updateRiderProfile, uploadVerificationFile, uploadAvatar, submitVerification } from "./assets/js/api.js";
+import { humanizeError } from "./assets/js/components.js";
 import { supabase, HAS_SUPABASE } from "./assets/js/supabase.js";
 
 renderSessionBadge(document.getElementById("sessionSlot"));
@@ -311,7 +323,7 @@ signupForm.addEventListener("submit", async (e) => {
       location.href = "./riders.html?confirmed=1";
     }
   } catch (ex) {
-    signupError.textContent = ex.message || String(ex);
+    signupError.textContent = humanizeError(ex);
     signupError.classList.remove("hidden");
     signupSubmit.disabled = false; signupSubmit.textContent = orig;
   }
@@ -337,6 +349,19 @@ async function prefillVerifyForm() {
   if (riderProfile.base_fee)   verifyForm.querySelector("[name=base_fee]").value   = riderProfile.base_fee;
   if (riderProfile.per_km_fee) verifyForm.querySelector("[name=per_km_fee]").value = riderProfile.per_km_fee;
 
+  // Live preview when user picks an avatar
+  const avatarInput   = document.getElementById("applyAvatarInput");
+  const avatarPreview = document.getElementById("applyAvatarPreview");
+  if (riderProfile.profile_photo && /^https?:\/\//.test(riderProfile.profile_photo)) {
+    avatarPreview.src = riderProfile.profile_photo;
+  }
+  avatarInput.addEventListener("change", () => {
+    const f = avatarInput.files?.[0];
+    if (!f) return;
+    if (f.size > 5 * 1024 * 1024) { alert("Photo must be 5 MB or smaller"); avatarInput.value = ""; return; }
+    avatarPreview.src = URL.createObjectURL(f);
+  });
+
   verifyForm.__chosen = chosen;
 }
 
@@ -359,8 +384,18 @@ verifyForm.addEventListener("submit", async (e) => {
     const videoFile  = f.get("video");
     if (!idFile?.size || !selfieFile?.size) throw new Error("Government ID and selfie are required.");
 
+    const userId = session.user.id;
+    const avatarFile = f.get("avatar");
+
+    // Upload the avatar first so we can include the URL in the profile patch.
+    let avatarUrl = null;
+    if (avatarFile && avatarFile.size) {
+      verifySubmit.disabled = true; verifySubmit.textContent = "Uploading photo…";
+      avatarUrl = await uploadAvatar(userId, avatarFile);
+    }
+
     verifySubmit.disabled = true; verifySubmit.textContent = "Saving profile…";
-    await updateRiderProfile(riderProfile.id, {
+    const profilePatch = {
       name: f.get("name"),
       phone: f.get("phone"),
       whatsapp: f.get("whatsapp"),
@@ -368,10 +403,11 @@ verifyForm.addEventListener("submit", async (e) => {
       delivery_zones: [...chosen],
       base_fee: Number(f.get("base_fee")),
       per_km_fee: Number(f.get("per_km_fee")),
-    });
+    };
+    if (avatarUrl) profilePatch.profile_photo = avatarUrl;
+    await updateRiderProfile(riderProfile.id, profilePatch);
 
     verifySubmit.textContent = "Uploading documents…";
-    const userId = session.user.id;
     const [id_url, selfie_url, video_url] = await Promise.all([
       uploadVerificationFile(userId, idFile,     "gov_id"),
       uploadVerificationFile(userId, selfieFile, "selfie"),
@@ -386,7 +422,7 @@ verifyForm.addEventListener("submit", async (e) => {
     showBanner("✓ Verification submitted — we'll email you when you're approved.", "success");
     window.scrollTo({ top: document.getElementById("apply").offsetTop - 80, behavior: "smooth" });
   } catch (ex) {
-    verifyError.textContent = ex.message || String(ex);
+    verifyError.textContent = humanizeError(ex);
     verifyError.classList.remove("hidden");
     verifySubmit.disabled = false; verifySubmit.textContent = orig;
   }

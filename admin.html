@@ -50,10 +50,10 @@
     </header>
 
     <section class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-      <div class="kpi"><div class="kpi-label">Pending</div><div class="kpi-value" id="kpiPending">—</div></div>
-      <div class="kpi"><div class="kpi-label">Verified drivers</div><div class="kpi-value" id="kpiVerified">—</div></div>
-      <div class="kpi"><div class="kpi-label">Restaurants</div><div class="kpi-value" id="kpiRestaurants">—</div></div>
-      <div class="kpi"><div class="kpi-label">Deliveries (24h)</div><div class="kpi-value" id="kpiDeliveries">—</div></div>
+      <div class="kpi"><div class="kpi-label">Pending</div><div class="kpi-value" id="kpiPending"><span class="skeleton skeleton-num"></span></div></div>
+      <div class="kpi"><div class="kpi-label">Verified drivers</div><div class="kpi-value" id="kpiVerified"><span class="skeleton skeleton-num"></span></div></div>
+      <div class="kpi"><div class="kpi-label">Restaurants</div><div class="kpi-value" id="kpiRestaurants"><span class="skeleton skeleton-num"></span></div></div>
+      <div class="kpi"><div class="kpi-label">Deliveries (24h)</div><div class="kpi-value" id="kpiDeliveries"><span class="skeleton skeleton-num"></span></div></div>
     </section>
 
     <section id="pane-verify">
@@ -93,7 +93,7 @@ import { isConfigured, requireAuth, getCurrentProfile, getUser } from "./assets/
 import { renderSessionBadge, bindAuthRefresh } from "./assets/js/session-ui.js";
 import { supabase, HAS_SUPABASE } from "./assets/js/supabase.js";
 import { fetchRiders, getZones, fetchPendingVerifications, decideVerification, fetchRequests } from "./assets/js/api.js";
-import { toast, esc, attr, safeImg } from "./assets/js/components.js";
+import { toast, toastError, humanizeError, esc, attr, safeImg } from "./assets/js/components.js";
 import { mountNotificationCenter } from "./assets/js/notification-center.js";
 import { pushNotification } from "./assets/js/notifications.js";
 
@@ -135,7 +135,12 @@ document.querySelectorAll("[data-pane]").forEach(a => {
 // === Verifications =========================================================
 async function renderPending() {
   const list = document.getElementById("verifyList");
-  list.innerHTML = `<div class="text-sm text-gray-600">Loading…</div>`;
+  list.innerHTML = Array.from({length:2}).map(() => `
+    <div class="skeleton-row">
+      <span class="skeleton-line"></span>
+      <span class="skeleton-line"></span>
+      <span class="skeleton-line"></span>
+    </div>`).join("");
   try {
     const data = await fetchPendingVerifications();
     document.getElementById("kpiPending").textContent = data.length;
@@ -169,7 +174,7 @@ async function renderPending() {
         await pushNotification({ recipient_type:"rider", recipient_id: card.dataset.rid, kind:"verification_approved",
           title:"Your verification has been approved.", body:"You're now a Verified Delivery Partner." });
         card.style.opacity = "0.4"; toast("Approved");
-      } catch (e) { toast(e.message); }
+      } catch (e) { toastError(e); }
     }));
     list.querySelectorAll(".reject").forEach(b => b.addEventListener("click", async () => {
       const card = b.closest("[data-vid]");
@@ -178,7 +183,7 @@ async function renderPending() {
         await pushNotification({ recipient_type:"rider", recipient_id: card.dataset.rid, kind:"verification_rejected",
           title:"Verification needs another look.", body:"Please review your submission and try again." });
         card.style.opacity = "0.4"; toast("Rejected");
-      } catch (e) { toast(e.message); }
+      } catch (e) { toastError(e); }
     }));
 
     // Signed-URL fetch for document badges
@@ -188,7 +193,7 @@ async function renderPending() {
       const { data, error } = await supabase.storage.from(a.dataset.bucket).createSignedUrl(a.dataset.doc, 60);
       if (!error && data?.signedUrl) window.open(data.signedUrl, "_blank");
     }));
-  } catch (e) { list.innerHTML = `<div class="text-sm text-red-600">${esc(e.message)}</div>`; }
+  } catch (e) { list.innerHTML = `<div class="text-sm text-red-600">${esc(humanizeError(e))}</div>`; }
 }
 
 // === Riders table ==========================================================
@@ -223,7 +228,7 @@ async function renderRiders() {
       await pushNotification({ recipient_type:"rider", recipient_id: b.dataset.id, kind:"rider_suspended",
         title:"Your account has been suspended.", body:"Reach out to support if you believe this is a mistake." });
       toast("Driver suspended"); renderRiders();
-    } catch (e) { toast(e.message); }
+    } catch (e) { toastError(e); }
   }));
 }
 
@@ -232,7 +237,7 @@ async function renderRestaurants() {
   const wrap = document.getElementById("restaurantTable");
   if (!HAS_SUPABASE) { wrap.innerHTML = `<div class="text-sm text-gray-600">Connect Supabase to view restaurants.</div>`; return; }
   const { data, error } = await supabase.from("restaurants").select("*").order("created_at", { ascending: false });
-  if (error) { wrap.innerHTML = `<div class="text-sm text-red-600">${esc(error.message)}</div>`; return; }
+  if (error) { wrap.innerHTML = `<div class="text-sm text-red-600">${esc(humanizeError(error))}</div>`; return; }
   document.getElementById("kpiRestaurants").textContent = data.length;
   wrap.innerHTML = data.length
     ? `<ul class="space-y-3">${data.map(r => `<li class="flex items-center justify-between"><div><div class="font-display font-bold">${esc(r.name)}</div><div class="text-xs text-gray-600">${esc(r.city || r.default_zone || "")}</div></div><span class="badge badge-verified">Active</span></li>`).join("")}</ul>`

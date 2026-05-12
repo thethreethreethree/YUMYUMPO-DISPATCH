@@ -385,6 +385,37 @@ button, [role="button"] { cursor: pointer; }
 /* Prevent body scroll when a drawer is open. */
 body.drawer-open { overflow: hidden; }
 
+/* ── SKELETONS ──────────────────────────────────────────── */
+/* A neutral shimmer used for any loading placeholder. */
+@keyframes skeletonShimmer {
+  0%   { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+.skeleton {
+  display: inline-block;
+  vertical-align: middle;
+  min-width: 1.5em;
+  height: 0.9em;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--gray-100) 0%, var(--gray-200) 40%, var(--gray-100) 80%);
+  background-size: 200px 100%;
+  background-repeat: no-repeat;
+  animation: skeletonShimmer 1.3s ease-in-out infinite;
+  color: transparent;
+  user-select: none;
+}
+.skeleton-num   { height: 36px; width: 64px; border-radius: 10px; }
+.skeleton-text  { height: 14px; width: 7ch; }
+.skeleton-line  { display: block; height: 12px; width: 100%; border-radius: 8px; }
+.skeleton-row {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 18px 20px; border-radius: 18px;
+  background: var(--white); border: 1.5px solid var(--gray-200);
+}
+.skeleton-row .skeleton-line:nth-child(1) { width: 30%; height: 10px; }
+.skeleton-row .skeleton-line:nth-child(2) { width: 70%; height: 14px; }
+.skeleton-row .skeleton-line:nth-child(3) { width: 50%; height: 10px; }
+
 /* ── BANNERS ────────────────────────────────────────────── */
 .config-banner {
   position: fixed; bottom: 16px; left: 16px; right: 16px;

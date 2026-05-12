@@ -113,16 +113,16 @@
 <section class="bg-brand-black text-white py-12 border-b-4 border-brand-yellow">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 gap-8">
     <div class="text-center md:text-left">
-      <div class="font-display text-4xl md:text-5xl font-black text-brand-yellow">142</div>
+      <div class="font-display text-4xl md:text-5xl font-black text-brand-yellow" id="statOnline"><span class="skeleton" style="width:3ch;height:40px"></span></div>
       <div class="text-xs uppercase tracking-widest text-white/60 font-bold mt-1">Online now</div>
     </div>
     <div class="text-center md:text-left">
-      <div class="font-display text-4xl md:text-5xl font-black text-brand-yellow">8</div>
+      <div class="font-display text-4xl md:text-5xl font-black text-brand-yellow" id="statZones"><span class="skeleton" style="width:2ch;height:40px"></span></div>
       <div class="text-xs uppercase tracking-widest text-white/60 font-bold mt-1">Active zones</div>
     </div>
     <div class="text-center md:text-left">
-      <div class="font-display text-4xl md:text-5xl font-black text-brand-yellow">3.2k</div>
-      <div class="text-xs uppercase tracking-widest text-white/60 font-bold mt-1">Deliveries / week</div>
+      <div class="font-display text-4xl md:text-5xl font-black text-brand-yellow" id="statVerified"><span class="skeleton" style="width:3ch;height:40px"></span></div>
+      <div class="text-xs uppercase tracking-widest text-white/60 font-bold mt-1">Verified drivers</div>
     </div>
     <div class="text-center md:text-left">
       <div class="font-display text-4xl md:text-5xl font-black text-brand-yellow">0%</div>
@@ -218,16 +218,7 @@
       </div>
       <a href="./marketplace.html" class="text-sm font-bold text-yellow-dark hover:text-brand-black underline underline-offset-4">View marketplace →</a>
     </div>
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-      <div class="zone-card"><div class="text-2xl mb-2">🏝️</div><div class="font-display text-lg font-bold">El Nido Town Proper</div><div class="text-xs text-gray-600 mt-1 font-semibold">Palawan · 38 riders</div></div>
-      <div class="zone-card"><div class="text-2xl mb-2">🌴</div><div class="font-display text-lg font-bold">Corong-Corong</div><div class="text-xs text-gray-600 mt-1 font-semibold">Palawan · 22 riders</div></div>
-      <div class="zone-card"><div class="text-2xl mb-2">🌅</div><div class="font-display text-lg font-bold">Las Cabanas</div><div class="text-xs text-gray-600 mt-1 font-semibold">Palawan · 14 riders</div></div>
-      <div class="zone-card"><div class="text-2xl mb-2">🏄</div><div class="font-display text-lg font-bold">General Luna</div><div class="text-xs text-gray-600 mt-1 font-semibold">Siargao · 27 riders</div></div>
-      <div class="zone-card"><div class="text-2xl mb-2">🏙️</div><div class="font-display text-lg font-bold">Cebu IT Park</div><div class="text-xs text-gray-600 mt-1 font-semibold">Cebu · 46 riders</div></div>
-      <div class="zone-card"><div class="text-2xl mb-2">🌆</div><div class="font-display text-lg font-bold">Lahug</div><div class="text-xs text-gray-600 mt-1 font-semibold">Cebu · 31 riders</div></div>
-      <div class="zone-card"><div class="text-2xl mb-2">🍻</div><div class="font-display text-lg font-bold">Poblacion</div><div class="text-xs text-gray-600 mt-1 font-semibold">Makati · 58 riders</div></div>
-      <div class="zone-card"><div class="text-2xl mb-2">🌃</div><div class="font-display text-lg font-bold">BGC</div><div class="text-xs text-gray-600 mt-1 font-semibold">Taguig · 64 riders</div></div>
-    </div>
+    <div id="zoneGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"></div>
   </div>
 </section>
 
@@ -317,6 +308,81 @@
   }
 </script>
 <script type="module" src="./assets/js/main.js"></script>
+
+<script type="module">
+  // Live homepage stats — pulls verified-driver, online, and per-zone counts
+  // from Supabase. Falls back to a neutral display on error so a flaky DB
+  // never breaks the marketing page.
+  import { getHomepageStats } from "./assets/js/api.js";
+
+  // Each zone gets a stable icon + city hint so the visual rhythm survives
+  // adding/removing zones in the database.
+  const ZONE_META = {
+    "El Nido Town Proper": { icon: "🏝️", city: "Palawan" },
+    "Corong-Corong":       { icon: "🌴", city: "Palawan" },
+    "Las Cabanas":         { icon: "🌅", city: "Palawan" },
+    "General Luna":        { icon: "🏄", city: "Siargao" },
+    "Cebu IT Park":        { icon: "🏙️", city: "Cebu" },
+    "Lahug":               { icon: "🌆", city: "Cebu" },
+    "Poblacion":           { icon: "🍻", city: "Makati" },
+    "BGC":                 { icon: "🌃", city: "Taguig" },
+  };
+  const DEFAULT_ICON = "📍";
+
+  function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+  function fmt(n) {
+    if (n == null) return "—";
+    if (n >= 1000) return (n / 1000).toFixed(n >= 10000 ? 0 : 1) + "k";
+    return String(n);
+  }
+
+  function renderStatsSkeleton() {
+    document.getElementById("zoneGrid").innerHTML = Array.from({length: 8}).map(() => `
+      <div class="zone-card">
+        <span class="skeleton" style="width:32px;height:24px;margin-bottom:6px"></span>
+        <span class="skeleton skeleton-line"></span>
+        <span class="skeleton skeleton-text mt-1"></span>
+      </div>`).join("");
+  }
+
+  function renderStats(stats) {
+    document.getElementById("statOnline").textContent   = fmt(stats.onlineDrivers);
+    document.getElementById("statZones").textContent    = fmt(stats.activeZones);
+    document.getElementById("statVerified").textContent = fmt(stats.verifiedDrivers);
+
+    const zones = stats.zones?.length ? stats.zones : Object.keys(stats.zoneCounts || {});
+    const grid = document.getElementById("zoneGrid");
+    if (!zones.length) {
+      grid.innerHTML = `<div class="col-span-full text-center text-sm text-gray-600 py-8">Zones coming soon — drivers are getting onboarded right now.</div>`;
+      return;
+    }
+    grid.innerHTML = zones.map(z => {
+      const meta = ZONE_META[z] || { icon: DEFAULT_ICON, city: "" };
+      const count = stats.zoneCounts?.[z] ?? 0;
+      const countText = count === 1 ? "1 driver" : `${count} drivers`;
+      return `<a href="./marketplace.html?zone=${encodeURIComponent(z)}" class="zone-card block">
+        <div class="text-2xl mb-2">${meta.icon}</div>
+        <div class="font-display text-lg font-bold">${esc(z)}</div>
+        <div class="text-xs text-gray-600 mt-1 font-semibold">${esc(meta.city)}${meta.city ? " · " : ""}${countText}</div>
+      </a>`;
+    }).join("");
+  }
+
+  renderStatsSkeleton();
+  getHomepageStats()
+    .then(renderStats)
+    .catch(err => {
+      console.warn("Homepage stats unavailable:", err?.message || err);
+      // Soft fallback: hide skeletons, show em-dashes; site remains usable.
+      document.getElementById("statOnline").textContent   = "—";
+      document.getElementById("statZones").textContent    = "—";
+      document.getElementById("statVerified").textContent = "—";
+      document.getElementById("zoneGrid").innerHTML = `
+        <div class="col-span-full text-center text-sm text-gray-600 py-8">
+          Live driver coverage will appear here once the network is live near you.
+        </div>`;
+    });
+</script>
 <script type="module">
   import { renderSessionBadge } from "./assets/js/session-ui.js";
   const slot = document.createElement("div");

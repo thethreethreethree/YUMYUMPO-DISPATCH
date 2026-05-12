@@ -111,6 +111,71 @@ export function toast(msg) {
   el._t = setTimeout(() => el.classList.remove("show"), 2600);
 }
 
+// ----- Error humaniser -----------------------------------------------------
+// Maps Supabase / Postgres / network errors to short, friendly user-facing
+// strings. Keeps raw Postgres error text out of toasts ("new row violates
+// row-level security policy" → "You don't have permission to do that").
+// Returns the original message if nothing matches.
+export function humanizeError(err) {
+  if (!err) return "Something went wrong.";
+  const code = err.code || err.status || "";
+  const raw  = (err.message || err.error_description || String(err)).toLowerCase();
+
+  // Auth
+  if (raw.includes("invalid login credentials"))         return "Email or password is incorrect.";
+  if (raw.includes("email not confirmed"))               return "Please confirm your email first — check your inbox for the confirmation link.";
+  if (raw.includes("user already registered"))           return "An account already exists with that email.";
+  if (raw.includes("password should be at least"))       return "Password must be at least 8 characters.";
+  if (raw.includes("jwt") && raw.includes("expired"))    return "Your session expired. Please sign in again.";
+  if (raw.includes("invalid jwt") || raw.includes("jwt malformed")) return "Your session is invalid. Please sign in again.";
+  if (raw.includes("rate limit") || code === 429)        return "Too many attempts. Please wait a moment and try again.";
+
+  // RLS / permissions
+  if (raw.includes("row-level security") || raw.includes("violates row-level"))
+    return "You don't have permission to do that.";
+  if (raw.includes("permission denied"))                 return "You don't have permission to do that.";
+
+  // Postgres unique / FK / null
+  if (raw.includes("duplicate key") || raw.includes("unique constraint"))
+    return "That already exists.";
+  if (raw.includes("foreign key constraint"))            return "Linked record is missing or has been removed.";
+  if (raw.includes("not-null constraint") || raw.includes("null value in column"))
+    return "Please fill in all required fields.";
+
+  // Storage
+  if (raw.includes("file size") || raw.includes("payload too large") || code === 413)
+    return "File is too large.";
+  if (raw.includes("mime type") || raw.includes("invalid_mime_type"))
+    return "That file type isn't supported.";
+  if (raw.includes("bucket not found"))                  return "Storage isn't configured yet — please contact support.";
+  if (raw.includes("the resource already exists"))       return "A file with that name already exists.";
+
+  // Network
+  if (raw.includes("failed to fetch") || raw.includes("networkerror") || raw.includes("network request failed"))
+    return "Network issue — please check your connection and try again.";
+  if (code === 503 || raw.includes("service unavailable"))
+    return "Service is temporarily unavailable. Please try again in a moment.";
+
+  // Domain-specific guards from our own throw sites
+  if (raw === "auth not configured" || raw.includes("supabase isn't configured"))
+    return "The site isn't fully set up yet — please try again later.";
+
+  // Postgres state-transition guards we raise from the request trigger
+  if (raw.startsWith("illegal transition") || raw.startsWith("illegal status transition"))
+    return "That status change isn't allowed.";
+  if (raw.includes("restaurant may only cancel"))         return "You can only cancel a request before it's delivered.";
+  if (raw.includes("driver must claim request for themselves")) return "You can only accept a request for yourself.";
+  if (raw.includes("driver not in this zone"))            return "That request isn't in one of your zones anymore.";
+
+  // Fallback: trim and capitalise the raw message so it at least reads cleanly.
+  const m = (err.message || String(err)).trim();
+  if (!m) return "Something went wrong.";
+  return m.charAt(0).toUpperCase() + m.slice(1);
+}
+
+// Convenience: humanise + toast.
+export function toastError(err) { toast(humanizeError(err)); }
+
 // ----- Modal ---------------------------------------------------------------
 // IMPORTANT: callers should pass already-escaped HTML. If you have raw user
 // input, wrap it through esc()/attr() before passing.

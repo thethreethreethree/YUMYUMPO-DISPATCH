@@ -42,9 +42,12 @@
 
   <main class="dash-main">
     <header class="flex items-center justify-between mb-8 flex-wrap gap-4">
-      <div>
+      <div class="min-w-0">
         <div class="text-xs uppercase tracking-widest text-gray-600 font-bold">Restaurant Dashboard</div>
-        <h1 class="font-display text-3xl md:text-4xl font-black mt-1" id="restaurantName">—</h1>
+        <div class="flex items-center gap-2 mt-1 flex-wrap">
+          <h1 class="font-display text-3xl md:text-4xl font-black truncate" id="restaurantName">—</h1>
+          <button id="editRestaurantBtn" type="button" class="btn-ghost !py-1.5 !px-3 !text-xs" title="Edit profile">Edit</button>
+        </div>
       </div>
       <div class="flex items-center gap-2">
         <div id="notifSlot"></div>
@@ -54,10 +57,10 @@
     </header>
 
     <section class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-      <div class="kpi"><div class="kpi-label">Online drivers</div><div class="kpi-value" id="kpiOnline">—</div></div>
-      <div class="kpi"><div class="kpi-label">Preferred</div><div class="kpi-value" id="kpiPref">—</div></div>
-      <div class="kpi"><div class="kpi-label">Active requests</div><div class="kpi-value" id="kpiActive">—</div></div>
-      <div class="kpi"><div class="kpi-label">Delivered today</div><div class="kpi-value" id="kpiDone">—</div></div>
+      <div class="kpi"><div class="kpi-label">Online drivers</div><div class="kpi-value" id="kpiOnline"><span class="skeleton skeleton-num"></span></div></div>
+      <div class="kpi"><div class="kpi-label">Preferred</div><div class="kpi-value" id="kpiPref"><span class="skeleton skeleton-num"></span></div></div>
+      <div class="kpi"><div class="kpi-label">Active requests</div><div class="kpi-value" id="kpiActive"><span class="skeleton skeleton-num"></span></div></div>
+      <div class="kpi"><div class="kpi-label">Delivered today</div><div class="kpi-value" id="kpiDone"><span class="skeleton skeleton-num"></span></div></div>
     </section>
 
     <section id="tab-riders" class="tab-pane">
@@ -115,9 +118,10 @@ import { renderSessionBadge, bindAuthRefresh } from "./assets/js/session-ui.js";
 import {
   fetchRiders, fetchRequests, getZones, getRestaurantByUser,
   togglePreferred, fetchPreferredRiderIds, submitRating,
-  createDeliveryRequest, cancelRequest, enums, trackEvent,
+  createDeliveryRequest, cancelRequest, updateRestaurant,
+  enums, trackEvent,
 } from "./assets/js/api.js";
-import { riderCard, emptyState, toast, modal, closeModal, esc, attr } from "./assets/js/components.js";
+import { riderCard, emptyState, toast, toastError, humanizeError, modal, closeModal, esc, attr } from "./assets/js/components.js";
 import { mountNotificationCenter } from "./assets/js/notification-center.js";
 import { notifyRequestCreated } from "./assets/js/notifications.js";
 
@@ -175,9 +179,18 @@ async function loadKPIs() {
   } catch (e) { console.error(e); }
 }
 
+function skeletonGrid(n = 6) {
+  return Array.from({length: n}).map(() => `
+    <div class="skeleton-row">
+      <span class="skeleton-line"></span>
+      <span class="skeleton-line"></span>
+      <span class="skeleton-line"></span>
+    </div>`).join("");
+}
+
 async function renderRiders() {
   const grid = document.getElementById("ridersGrid");
-  grid.innerHTML = `<div class="text-sm text-gray-600 col-span-full">Loading drivers…</div>`;
+  grid.innerHTML = skeletonGrid(6);
   try {
     const filters = {
       zone: zoneSel.value || undefined,
@@ -202,14 +215,14 @@ function bindFavButtons() {
         const list = await togglePreferred(restaurant.id, b.dataset.rider);
         toast(list.includes(b.dataset.rider) ? "Added to preferred" : "Removed from preferred");
         renderRiders();
-      } catch (ex) { toast(ex.message); }
+      } catch (ex) { toastError(ex); }
     });
   });
 }
 
 async function renderPreferred() {
   const grid = document.getElementById("prefGrid");
-  grid.innerHTML = `<div class="text-sm text-gray-600 col-span-full">Loading…</div>`;
+  grid.innerHTML = skeletonGrid(3);
   const pref = await fetchPreferredRiderIds(restaurant.id);
   const data = (await fetchRiders()).filter(r => pref.includes(r.id));
   if (!data.length) { grid.innerHTML = emptyState("No preferred drivers yet", "Tap the heart on any driver to save them."); return; }
@@ -219,7 +232,15 @@ async function renderPreferred() {
 
 async function renderRequests() {
   const tbody = document.getElementById("reqRows");
-  tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-sm text-gray-600">Loading…</td></tr>`;
+  tbody.innerHTML = Array.from({length:3}).map(() => `
+    <tr class="border-t border-gray-100">
+      <td class="p-4"><span class="skeleton" style="width:14ch"></span></td>
+      <td class="p-4"><span class="skeleton" style="width:10ch"></span></td>
+      <td class="p-4"><span class="skeleton" style="width:18ch"></span></td>
+      <td class="p-4"><span class="skeleton" style="width:8ch"></span></td>
+      <td class="p-4"><span class="skeleton" style="width:6ch"></span></td>
+      <td class="p-4"></td>
+    </tr>`).join("");
   try {
     const rows = await fetchRequests({ restaurant_id: restaurant.id, limit: 50 });
     const riders = await fetchRiders();
@@ -241,9 +262,9 @@ async function renderRequests() {
       </tr>`;
     }).join("");
     tbody.querySelectorAll(".cancel-btn").forEach(b => b.addEventListener("click", async () => {
-      try { await cancelRequest(b.dataset.id); toast("Request cancelled"); renderRequests(); loadKPIs(); } catch(e){ toast(e.message); }
+      try { await cancelRequest(b.dataset.id); toast("Request cancelled"); renderRequests(); loadKPIs(); } catch(e){ toastError(e); }
     }));
-  } catch (e) { tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-sm text-red-600">${esc(e.message)}</td></tr>`; }
+  } catch (e) { tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-sm text-red-600">${esc(humanizeError(e))}</td></tr>`; }
 }
 
 async function renderRate() {
@@ -277,7 +298,7 @@ async function renderRate() {
       try {
         await submitRating({ restaurant_id: restaurant.id, rider_id: s.dataset.rider, metric: s.dataset.metric, value: n });
         toast("Saved");
-      } catch (e) { toast(e.message); }
+      } catch (e) { toastError(e); }
     }));
   });
 }
@@ -317,13 +338,85 @@ function openRequest() {
       toast("Request sent to drivers in " + created.zone);
       renderRequests(); loadKPIs();
     } catch (ex) {
-      const el = document.getElementById("reqErr"); el.textContent = ex.message; el.classList.remove("hidden");
+      const el = document.getElementById("reqErr"); el.textContent = humanizeError(ex); el.classList.remove("hidden");
       submit.disabled = false; submit.textContent = "Send to drivers";
     }
   });
 }
 document.getElementById("newRequestBtn").addEventListener("click", openRequest);
 document.getElementById("mNewReq").addEventListener("click", openRequest);
+
+// === Edit restaurant profile =============================================
+function openEditRestaurant() {
+  modal(`
+    <div class="text-xs uppercase tracking-widest text-yellow-dark font-bold mb-2">Edit profile</div>
+    <h2 class="font-display text-2xl font-bold mb-4">Restaurant details</h2>
+    <form id="restForm" class="space-y-3" novalidate>
+      <div>
+        <label class="text-xs font-bold text-gray-600">Restaurant name</label>
+        <input class="field mt-1" name="name" required maxlength="120" value="${attr(restaurant.name || "")}"/>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs font-bold text-gray-600">Phone</label>
+          <input class="field mt-1" name="contact_phone" maxlength="32" value="${attr(restaurant.contact_phone || "")}" placeholder="+639XXXXXXXXX"/>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-600">WhatsApp</label>
+          <input class="field mt-1" name="whatsapp" maxlength="32" value="${attr(restaurant.whatsapp || "")}" placeholder="639XXXXXXXXX"/>
+        </div>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs font-bold text-gray-600">City</label>
+          <input class="field mt-1" name="city" maxlength="80" value="${attr(restaurant.city || "")}" placeholder="Cebu"/>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-600">Default zone</label>
+          <select class="field mt-1" name="default_zone">
+            <option value="">— none —</option>
+            ${zones.map(z => `<option value="${attr(z)}" ${restaurant.default_zone===z?"selected":""}>${esc(z)}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+      <div id="restErr" class="text-sm text-red-600 font-semibold hidden"></div>
+      <div class="flex gap-2 justify-end pt-2">
+        <button type="button" class="btn-ghost" id="restCancel">Cancel</button>
+        <button type="submit" class="btn-primary" id="restSave">Save changes</button>
+      </div>
+    </form>
+  `);
+  document.getElementById("restCancel").addEventListener("click", closeModal);
+  document.getElementById("restForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById("restErr");
+    errEl.classList.add("hidden");
+    const fd = Object.fromEntries(new FormData(e.target).entries());
+    const btn = document.getElementById("restSave");
+    const orig = btn.textContent;
+    btn.disabled = true; btn.textContent = "Saving…";
+    try {
+      if (!fd.name?.trim()) throw new Error("Restaurant name is required.");
+      const patch = {
+        name: fd.name.trim(),
+        contact_phone: fd.contact_phone?.trim() || null,
+        whatsapp: fd.whatsapp?.trim() || null,
+        city: fd.city?.trim() || null,
+        default_zone: fd.default_zone || null,
+      };
+      const updated = await updateRestaurant(restaurant.id, patch);
+      Object.assign(restaurant, updated || patch);
+      document.getElementById("restaurantName").textContent = restaurant.name;
+      closeModal();
+      toast("Profile saved");
+    } catch (ex) {
+      errEl.textContent = humanizeError(ex);
+      errEl.classList.remove("hidden");
+      btn.disabled = false; btn.textContent = orig;
+    }
+  });
+}
+document.getElementById("editRestaurantBtn").addEventListener("click", openEditRestaurant);
 
 renderRiders();
 </script>

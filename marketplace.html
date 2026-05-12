@@ -91,7 +91,7 @@
 import { fetchRiders, togglePreferred, fetchPreferredRiderIds, getZones, enums, getRestaurantByUser } from "./assets/js/api.js";
 import { getUser } from "./assets/js/auth.js";
 import { renderSessionBadge } from "./assets/js/session-ui.js";
-import { riderCard, emptyState, toast, esc, attr } from "./assets/js/components.js";
+import { riderCard, emptyState, toast, toastError, esc, attr } from "./assets/js/components.js";
 
 const sessionSlot = document.querySelector("a[href='./auth.html']")?.parentElement?.appendChild(document.createElement("div"));
 if (sessionSlot) renderSessionBadge(sessionSlot);
@@ -104,9 +104,28 @@ const zoneSel = document.getElementById("filterZone");
 const vehSel = document.getElementById("filterVehicle");
 enums.VEHICLES.forEach(v => vehSel.insertAdjacentHTML("beforeend", `<option value="${attr(v)}">${esc(v)}</option>`));
 
+// Preselect filters from the URL — e.g. /marketplace.html?zone=BGC arriving
+// from the homepage zone tiles.
+const urlFilters = new URLSearchParams(location.search);
+const presetZone    = urlFilters.get("zone");
+const presetVehicle = urlFilters.get("vehicle");
+const presetStatus  = urlFilters.get("status");
+if (presetZone    && [...zoneSel.options].some(o => o.value === presetZone)) zoneSel.value = presetZone;
+if (presetVehicle && [...vehSel.options].some(o => o.value === presetVehicle)) vehSel.value = presetVehicle;
+if (presetStatus) document.getElementById("filterStatus").value = presetStatus;
+
+function skeletonGrid(n = 6) {
+  return Array.from({length: n}).map(() => `
+    <div class="skeleton-row">
+      <span class="skeleton-line"></span>
+      <span class="skeleton-line"></span>
+      <span class="skeleton-line"></span>
+    </div>`).join("");
+}
+
 async function render() {
   const grid = document.getElementById("grid");
-  grid.innerHTML = `<div class="text-sm text-gray-600 col-span-full">Loading drivers…</div>`;
+  grid.innerHTML = skeletonGrid(6);
   try {
     const data = await fetchRiders({
       zone: zoneSel.value || undefined,
@@ -127,7 +146,7 @@ async function render() {
           const list = await togglePreferred(viewerRestaurantId, b.dataset.rider);
           toast(list.includes(b.dataset.rider) ? "Saved" : "Removed");
           render();
-        } catch (e) { toast(e.message); }
+        } catch (e) { toastError(e); }
       });
     });
   } catch (e) { grid.innerHTML = emptyState("Couldn't load drivers", e.message); }

@@ -277,6 +277,52 @@ export async function decideVerification(verificationId, riderId, decision) {
   return true;
 }
 
+// -------------------- HOMEPAGE STATS ---------------------------------
+// Anonymous-readable aggregates for the public homepage. Driven by the
+// existing RLS policies that expose verified riders + active zones to
+// everyone. Returns sensible fallbacks in mock / preview mode.
+export async function getHomepageStats() {
+  if (!isProd()) {
+    return {
+      onlineDrivers: RIDERS.filter(r => r.verified && (r.status === "online" || r.status === "available")).length,
+      activeZones: ZONES.length,
+      verifiedDrivers: RIDERS.filter(r => r.verified).length,
+      zoneCounts: Object.fromEntries(ZONES.map(z => [z, RIDERS.filter(r => r.verified && r.zones.includes(z)).length])),
+    };
+  }
+  const [online, zones, verified, allRiders] = await Promise.all([
+    supabase.from("riders").select("id", { count: "exact", head: true })
+      .eq("verification_status", "verified").in("availability_status", ["online", "available"]),
+    supabase.from("rider_zones").select("zone", { count: "exact" }).eq("active", true),
+    supabase.from("riders").select("id", { count: "exact", head: true })
+      .eq("verification_status", "verified"),
+    supabase.from("riders").select("delivery_zones").eq("verification_status", "verified"),
+  ]);
+  if (online.error)    throw online.error;
+  if (zones.error)     throw zones.error;
+  if (verified.error)  throw verified.error;
+  if (allRiders.error) throw allRiders.error;
+
+  // Per-zone driver counts — done client-side from the riders we just fetched
+  // (postgres array_agg / unnest would need a SQL function; this is faster to
+  // ship and still cheap for hundreds of riders).
+  const zoneCounts = {};
+  (zones.data || []).forEach(z => { zoneCounts[z.zone] = 0; });
+  (allRiders.data || []).forEach(r => {
+    (r.delivery_zones || []).forEach(z => {
+      if (zoneCounts[z] !== undefined) zoneCounts[z] += 1;
+    });
+  });
+
+  return {
+    onlineDrivers: online.count ?? 0,
+    activeZones: zones.count ?? (zones.data || []).length,
+    verifiedDrivers: verified.count ?? 0,
+    zoneCounts,
+    zones: (zones.data || []).map(z => z.zone),
+  };
+}
+
 // -------------------- ANALYTICS --------------------------------------
 export async function trackEvent(event, payload, actor) {
   if (!isProd()) return;

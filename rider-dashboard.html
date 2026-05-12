@@ -32,11 +32,11 @@
   <section class="grid md:grid-cols-4 gap-3 mb-8">
     <div class="kpi md:col-span-2">
       <div class="kpi-label">Driver</div>
-      <div class="kpi-value" id="riderName">—</div>
-      <div class="text-xs text-gray-600 mt-2 font-semibold" id="riderMeta">—</div>
+      <div class="kpi-value" id="riderName"><span class="skeleton" style="width:12ch"></span></div>
+      <div class="text-xs text-gray-600 mt-2 font-semibold" id="riderMeta"><span class="skeleton skeleton-text"></span></div>
     </div>
-    <div class="kpi"><div class="kpi-label">Completed</div><div class="kpi-value" id="kpiDone">—</div></div>
-    <div class="kpi"><div class="kpi-label">Rating</div><div class="kpi-value" id="kpiRating">—</div></div>
+    <div class="kpi"><div class="kpi-label">Completed</div><div class="kpi-value" id="kpiDone"><span class="skeleton skeleton-num"></span></div></div>
+    <div class="kpi"><div class="kpi-label">Rating</div><div class="kpi-value" id="kpiRating"><span class="skeleton skeleton-num"></span></div></div>
   </section>
 
   <section class="mb-10">
@@ -66,9 +66,10 @@ import { isConfigured, requireAuth } from "./assets/js/auth.js";
 import { renderSessionBadge, bindAuthRefresh } from "./assets/js/session-ui.js";
 import {
   fetchRider, fetchRequests, acceptRequest, markPickedUp, markDelivered,
-  setRiderStatus, updateRiderProfile, getZones, enums, trackEvent,
+  setRiderStatus, updateRiderProfile, uploadAvatar, getZones, enums, trackEvent,
 } from "./assets/js/api.js";
-import { toast, modal, closeModal, esc, attr } from "./assets/js/components.js";
+import { getUser } from "./assets/js/auth.js";
+import { toast, toastError, humanizeError, modal, closeModal, esc, attr } from "./assets/js/components.js";
 import { mountNotificationCenter } from "./assets/js/notification-center.js";
 import { notifyRequestAccepted, notifyDeliveryCompleted } from "./assets/js/notifications.js";
 
@@ -105,7 +106,7 @@ statusSel.addEventListener("change", async () => {
     toast("Status set to " + statusSel.value);
     trackEvent("status_change", { status: statusSel.value }, { type:"rider", id: rider.id });
     render();
-  } catch (e) { toast(e.message); }
+  } catch (e) { toastError(e); }
 });
 
 // Profile summary
@@ -115,20 +116,42 @@ document.getElementById("kpiDone").textContent = Number(rider.completed) || 0;
 document.getElementById("kpiRating").textContent = Number(rider.rating) ? Number(rider.rating).toFixed(1) : "—";
 const baseFee = Number(rider.base_fee) || 0;
 const perKm   = Number(rider.per_km_fee) || 0;
-document.getElementById("profileSummary").innerHTML = `
-  <div class="grid sm:grid-cols-3 gap-4">
-    <div><div class="text-xs uppercase tracking-widest font-bold text-gray-600">Vehicle</div><div class="font-display text-xl font-bold capitalize mt-1">${esc(rider.vehicle || "—")}</div></div>
-    <div><div class="text-xs uppercase tracking-widest font-bold text-gray-600">Base fee</div><div class="font-display text-xl font-bold mt-1">₱${baseFee}</div></div>
-    <div><div class="text-xs uppercase tracking-widest font-bold text-gray-600">Per km</div><div class="font-display text-xl font-bold mt-1">${perKm ? "₱"+perKm : "Flat"}</div></div>
-  </div>
-  <div class="mt-4 flex flex-wrap gap-2">${(rider.zones||[]).map(z => `<span class="badge badge-zone">${esc(z)}</span>`).join("") || `<span class="text-xs text-gray-600">No zones set yet — add some so restaurants can find you.</span>`}</div>
-`;
+function renderProfileSummary() {
+  const baseFee = Number(rider.base_fee) || 0;
+  const perKm   = Number(rider.per_km_fee) || 0;
+  const photo   = /^https?:\/\//.test(rider.photo || "") ? rider.photo : "https://placehold.co/160x160/FFD000/111111?text=Y";
+  document.getElementById("profileSummary").innerHTML = `
+    <div class="flex items-center gap-5 mb-5">
+      <img src="${attr(photo)}" alt="${attr(rider.name || "Driver")}" class="w-20 h-20 rounded-2xl object-cover border border-gray-200" referrerpolicy="no-referrer"/>
+      <div class="min-w-0">
+        <div class="font-display font-bold text-lg truncate">${esc(rider.name || "Driver")}</div>
+        <div class="text-xs text-gray-600 mt-1">${rider.verified ? "<span class='badge badge-verified'>✔ Verified Delivery Partner</span>" : ""}</div>
+      </div>
+    </div>
+    <div class="grid sm:grid-cols-3 gap-4">
+      <div><div class="text-xs uppercase tracking-widest font-bold text-gray-600">Vehicle</div><div class="font-display text-xl font-bold capitalize mt-1">${esc(rider.vehicle || "—")}</div></div>
+      <div><div class="text-xs uppercase tracking-widest font-bold text-gray-600">Base fee</div><div class="font-display text-xl font-bold mt-1">₱${baseFee}</div></div>
+      <div><div class="text-xs uppercase tracking-widest font-bold text-gray-600">Per km</div><div class="font-display text-xl font-bold mt-1">${perKm ? "₱"+perKm : "Flat"}</div></div>
+    </div>
+    <div class="mt-4 flex flex-wrap gap-2">${(rider.zones||[]).map(z => `<span class="badge badge-zone">${esc(z)}</span>`).join("") || `<span class="text-xs text-gray-600">No zones set yet — add some so restaurants can find you.</span>`}</div>
+  `;
+}
+renderProfileSummary();
 
 // Render queues
+function skeletonRows(n = 2) {
+  return Array.from({length: n}).map(() => `
+    <div class="skeleton-row">
+      <span class="skeleton-line"></span>
+      <span class="skeleton-line"></span>
+      <span class="skeleton-line"></span>
+    </div>`).join("");
+}
+
 async function render() {
   const incoming = document.getElementById("incoming");
   const inProg   = document.getElementById("inProgress");
-  incoming.innerHTML = `<div class="text-sm text-gray-600">Loading…</div>`;
+  incoming.innerHTML = skeletonRows(2);
   inProg.innerHTML   = "";
   try {
     const hasZones = Array.isArray(rider.zones) && rider.zones.length > 0;
@@ -160,7 +183,7 @@ async function render() {
 
     bindActions();
     document.getElementById("addZonesBtn")?.addEventListener("click", () => document.getElementById("editProfile").click());
-  } catch (e) { incoming.innerHTML = `<div class="text-sm text-red-600">${esc(e.message)}</div>`; }
+  } catch (e) { incoming.innerHTML = `<div class="text-sm text-red-600">${esc(humanizeError(e))}</div>`; }
 }
 
 function requestCard(r, mode) {
@@ -195,7 +218,7 @@ function bindActions() {
       toast("Accepted — restaurant will reach you on WhatsApp");
       render();
     } catch (e) {
-      toast(e.message);
+      toastError(e);
       b.disabled = false;
     }
   }));
@@ -203,7 +226,7 @@ function bindActions() {
     b.closest(".rider-card").remove();
   }));
   document.querySelectorAll(".pickup").forEach(b => b.addEventListener("click", async () => {
-    try { await markPickedUp(b.dataset.id); toast("Marked as picked up"); render(); } catch(e){ toast(e.message); }
+    try { await markPickedUp(b.dataset.id); toast("Marked as picked up"); render(); } catch(e){ toastError(e); }
   }));
   document.querySelectorAll(".deliver").forEach(b => b.addEventListener("click", async () => {
     try {
@@ -213,7 +236,7 @@ function bindActions() {
       rider = await fetchRider(rider.id); // refresh counters
       document.getElementById("kpiDone").textContent = rider.completed;
       render();
-    } catch(e){ toast(e.message); }
+    } catch(e){ toastError(e); }
   }));
 }
 
@@ -222,10 +245,18 @@ document.getElementById("refreshBtn").addEventListener("click", render);
 // Edit profile modal
 document.getElementById("editProfile").addEventListener("click", async () => {
   const zones = await getZones();
+  const currentPhoto = /^https?:\/\//.test(rider.photo || "") ? rider.photo : "https://placehold.co/160x160/FFD000/111111?text=Y";
   modal(`
     <div class="text-xs uppercase tracking-widest font-bold text-yellow-dark mb-2">Edit profile</div>
-    <h2 class="font-display text-2xl font-bold mb-4">Zones & pricing</h2>
-    <form id="profForm" class="space-y-3">
+    <h2 class="font-display text-2xl font-bold mb-4">Photo, zones & pricing</h2>
+    <form id="profForm" class="space-y-4" novalidate>
+      <div class="flex items-center gap-4">
+        <img id="avatarPreview" src="${attr(currentPhoto)}" alt="${attr(rider.name||"")}" class="w-16 h-16 rounded-2xl object-cover border border-gray-200" referrerpolicy="no-referrer"/>
+        <label class="upload !flex-1 !cursor-pointer">
+          <span>Change profile photo (optional)</span>
+          <input id="avatarFile" type="file" name="avatar" accept="image/jpeg,image/png,image/webp"/>
+        </label>
+      </div>
       <div>
         <label class="text-xs font-bold text-gray-600">Vehicle</label>
         <select class="field mt-1" name="vehicle_type">${enums.VEHICLES.map(v => `<option value="${attr(v)}" ${rider.vehicle===v?"selected":""}>${esc(v)}</option>`).join("")}</select>
@@ -238,12 +269,23 @@ document.getElementById("editProfile").addEventListener("click", async () => {
         <div><label class="text-xs font-bold text-gray-600">Base fee (₱)</label><input class="field mt-1" type="number" name="base_fee" min="0" step="1" value="${attr(Number(rider.base_fee)||0)}"/></div>
         <div><label class="text-xs font-bold text-gray-600">Per km (₱)</label><input class="field mt-1" type="number" name="per_km_fee" min="0" step="1" value="${attr(Number(rider.per_km_fee)||0)}"/></div>
       </div>
+      <div id="profErr" class="text-sm text-red-600 font-semibold hidden"></div>
       <div class="flex justify-end gap-2 pt-2">
         <button type="button" class="btn-ghost" id="profCancel">Cancel</button>
-        <button class="btn-primary" id="profSave">Save</button>
+        <button class="btn-primary" id="profSave" type="submit">Save</button>
       </div>
     </form>
   `);
+
+  // Live preview when the user picks an image
+  const avatarFile = document.getElementById("avatarFile");
+  const avatarPreview = document.getElementById("avatarPreview");
+  avatarFile.addEventListener("change", () => {
+    const f = avatarFile.files?.[0];
+    if (!f) return;
+    if (f.size > 5 * 1024 * 1024) { toast("Photo must be 5 MB or smaller"); avatarFile.value = ""; return; }
+    avatarPreview.src = URL.createObjectURL(f);
+  });
   const chosen = new Set(rider.zones);
   document.querySelectorAll("#zoneChips .zone-chip").forEach(c => c.addEventListener("click", () => {
     c.classList.toggle("on");
@@ -253,19 +295,43 @@ document.getElementById("editProfile").addEventListener("click", async () => {
   document.getElementById("profCancel").addEventListener("click", closeModal);
   document.getElementById("profForm").addEventListener("submit", async (e) => {
     e.preventDefault();
+    const errEl = document.getElementById("profErr");
+    errEl.classList.add("hidden");
+    const btn = document.getElementById("profSave");
+    const orig = btn.textContent;
+    btn.disabled = true;
     const f = new FormData(e.target);
     try {
-      const updated = await updateRiderProfile(rider.id, {
+      const patch = {
         vehicle_type: f.get("vehicle_type"),
         delivery_zones: [...chosen],
         base_fee: Number(f.get("base_fee")),
         per_km_fee: Number(f.get("per_km_fee")),
-      });
+      };
+
+      // Upload the avatar first if the user picked one. Public URL goes into
+      // the same patch so the profile update is a single round-trip.
+      const avatar = f.get("avatar");
+      if (avatar && avatar.size) {
+        btn.textContent = "Uploading photo…";
+        const user = await getUser();
+        if (!user) throw new Error("Sign in expired. Please sign in again.");
+        const publicUrl = await uploadAvatar(user.id, avatar);
+        if (publicUrl) patch.profile_photo = publicUrl;
+      }
+
+      btn.textContent = "Saving…";
+      await updateRiderProfile(rider.id, patch);
       rider = await fetchRider(rider.id);
       closeModal();
       toast("Profile saved");
-      location.reload();
-    } catch (ex) { toast(ex.message); }
+      renderProfileSummary();
+      render();
+    } catch (ex) {
+      errEl.textContent = humanizeError(ex);
+      errEl.classList.remove("hidden");
+      btn.disabled = false; btn.textContent = orig;
+    }
   });
 });
 
