@@ -4,34 +4,25 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="description" content="The official rider discovery partner of YUMYUMPO. Find independent delivery drivers across the Philippines." />
-<title>YUMYUMPO Dispatch — Independent Hospitality Delivery</title>
+<title>YUMYUMPO Dispatch — Discover independent delivery drivers</title>
+<link rel="icon" type="image/svg+xml" href="./assets/favicon.svg"/>
+<link rel="apple-touch-icon" href="./assets/favicon.svg"/>
 <link rel="manifest" href="./manifest.webmanifest"/>
 <meta name="theme-color" content="#FFD000"/>
+<meta property="og:site_name" content="YUMYUMPO Dispatch"/>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="YUMYUMPO Dispatch — Discover independent delivery drivers"/>
+<meta property="og:description" content="The official driver discovery partner of YUMYUMPO. Restaurants find independent drivers. Drivers get discovered."/>
+<meta property="og:image" content="./assets/og-image.svg"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="YUMYUMPO Dispatch — Discover independent delivery drivers"/>
+<meta name="twitter:description" content="The official driver discovery partner of YUMYUMPO."/>
+<meta name="twitter:image" content="./assets/og-image.svg"/>
 <script src="./assets/js/config.js" onerror="window.__noConfig=true"></script>
-<script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./assets/css/styles.css" />
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        colors: {
-          'brand-yellow': '#FFD000', 'yellow-dark':'#E6BB00', 'yellow-light':'#FFF9D6', 'yellow-pale':'#FFFDF0',
-          'brand-black':  '#111111', 'black-soft':'#1E1E1E',
-          'gray-50':'#F9F9F9','gray-100':'#F3F3F3','gray-200':'#E8E8E8','gray-400':'#ABABAB','gray-600':'#6B6B6B',
-          /* legacy aliases */
-          cream:'#FFFFFF', warm:'#F9F9F9', beige:'#FFF9D6', charcoal:'#111111', ink:'#1E1E1E', ember:'#FFD000', dust:'#6B6B6B',
-        },
-        fontFamily: {
-          display: ['"Space Grotesk"','Inter','system-ui','sans-serif'],
-          sans:    ['Inter','system-ui','sans-serif'],
-        },
-      },
-    },
-  };
-</script>
 </head>
 <body class="bg-white font-sans text-brand-black antialiased">
 
@@ -51,11 +42,36 @@
       </div>
       <div class="flex items-center gap-3">
         <a href="./auth.html" class="hidden md:inline-flex text-sm font-semibold text-gray-600 hover:text-brand-black">Sign in</a>
-        <a href="./riders.html" class="btn-primary text-sm !py-2.5 !px-5">Join as Rider</a>
+        <a href="./riders.html" class="hidden md:inline-flex btn-primary text-sm !py-2.5 !px-5">Join as Driver</a>
+        <button type="button" class="menu-trigger" data-drawer-target="#mobileNav" aria-label="Open menu">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
       </div>
     </div>
   </div>
 </nav>
+
+<!-- MOBILE DRAWER -->
+<aside id="mobileNav" class="drawer-panel" aria-label="Site menu">
+  <div class="drawer-head">
+    <div class="flex items-center gap-2">
+      <span class="w-9 h-9 rounded-2xl bg-brand-yellow text-brand-black grid place-items-center font-display font-black">Y</span>
+      <span class="font-display font-bold text-base">Dispatch</span>
+    </div>
+    <button type="button" class="drawer-close" data-drawer-close aria-label="Close menu">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+    </button>
+  </div>
+  <nav class="drawer-body">
+    <a href="./restaurants.html" class="drawer-link">🏪 Restaurants</a>
+    <a href="./marketplace.html" class="drawer-link">🛵 Drivers</a>
+    <a href="./about.html"       class="drawer-link">💛 About</a>
+    <a href="https://thethreethreethree.github.io/YUMYUMPO/" target="_blank" rel="noopener" class="drawer-link">↗ YUMYUMPO Discovery</a>
+    <a href="./auth.html"  class="drawer-link">Sign in</a>
+    <a href="./riders.html" class="drawer-link cta">Join as Driver</a>
+  </nav>
+  <div class="drawer-foot">© 2026 YUMYUMPO Dispatch</div>
+</aside>
 
 <!-- HERO -->
 <section class="hero-section relative min-h-screen flex items-center justify-center overflow-hidden">

@@ -1,4 +1,6 @@
 // Global page hooks — runs on every page.
+import "./drawer.js"; // auto-mounts any [data-drawer-target] hamburgers
+
 if ("serviceWorker" in navigator && location.protocol !== "file:") {
   window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
 }

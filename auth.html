@@ -4,21 +4,13 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Sign in · YUMYUMPO Dispatch</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<link rel="icon" type="image/svg+xml" href="./assets/favicon.svg"/>
+<link rel="apple-touch-icon" href="./assets/favicon.svg"/>
+<meta name="theme-color" content="#FFD000"/>
+<meta name="robots" content="noindex,nofollow"/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./assets/css/styles.css"/>
 <script src="./assets/js/config.js" onerror="console.warn('config.js missing — using offline demo mode')"></script>
-<script>
-  tailwind.config = { theme: { extend: {
-    colors: {
-      'brand-yellow':'#FFD000','yellow-dark':'#E6BB00','yellow-light':'#FFF9D6','yellow-pale':'#FFFDF0',
-      'brand-black':'#111111','black-soft':'#1E1E1E',
-      'gray-50':'#F9F9F9','gray-100':'#F3F3F3','gray-200':'#E8E8E8','gray-400':'#ABABAB','gray-600':'#6B6B6B',
-      cream:'#FFFFFF', warm:'#F9F9F9', beige:'#FFF9D6', charcoal:'#111111', ink:'#1E1E1E', ember:'#FFD000', dust:'#6B6B6B'
-    },
-    fontFamily: { display:['"Space Grotesk"','Inter','system-ui','sans-serif'], sans:['Inter','system-ui','sans-serif'] }
-  }}};
-</script>
 </head>
 <body class="bg-yellow-pale text-brand-black font-sans min-h-screen grid place-items-center px-5 py-12">
 
@@ -55,21 +47,37 @@
         <div><label class="text-xs font-bold text-gray-600">Phone</label><input class="field mt-1" name="phone" placeholder="+639XXXXXXXXX" autocomplete="tel"/></div>
         <div><label class="text-xs font-bold text-gray-600">WhatsApp</label><input class="field mt-1" name="whatsapp" placeholder="639XXXXXXXXX"/></div>
       </div>
-      <div>
+      <div id="emailRow">
         <label class="text-xs font-bold text-gray-600">Email</label>
         <input class="field mt-1" type="email" name="email" required placeholder="you@example.com" autocomplete="email"/>
       </div>
-      <div>
-        <label class="text-xs font-bold text-gray-600">Password</label>
+      <div id="passwordRow">
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-bold text-gray-600">Password</label>
+          <button type="button" id="forgotLink" class="text-xs font-bold text-yellow-dark hover:underline">Forgot password?</button>
+        </div>
         <input class="field mt-1" type="password" name="password" required minlength="8" placeholder="At least 8 characters" autocomplete="current-password"/>
       </div>
+      <div id="newPasswordRow" class="hidden space-y-3">
+        <div>
+          <label class="text-xs font-bold text-gray-600">New password</label>
+          <input class="field mt-1" type="password" name="newPassword" minlength="8" placeholder="At least 8 characters" autocomplete="new-password"/>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-600">Confirm new password</label>
+          <input class="field mt-1" type="password" name="confirmPassword" minlength="8" autocomplete="new-password"/>
+        </div>
+      </div>
       <div id="formError" class="text-sm text-red-600 font-semibold hidden"></div>
+      <div id="formInfo"  class="text-sm text-yellow-dark font-semibold hidden"></div>
       <button class="btn-primary w-full !py-3.5" id="submitBtn">Continue</button>
+      <button type="button" id="backToSignin" class="text-xs font-bold text-gray-600 hover:text-brand-black hidden w-full text-center mt-2">← Back to sign in</button>
     </form>
 
-    <div class="relative my-5"><div class="border-t border-gray-200"></div><span class="absolute inset-0 -top-2 text-center text-xs font-bold text-gray-400"><span class="bg-white px-3">or</span></span></div>
-
-    <button id="magicBtn" class="btn-ghost w-full">Email me a magic link</button>
+    <div id="altMethods">
+      <div class="relative my-5"><div class="border-t border-gray-200"></div><span class="absolute inset-0 -top-2 text-center text-xs font-bold text-gray-400"><span class="bg-white px-3">or</span></span></div>
+      <button id="magicBtn" type="button" class="btn-ghost w-full">Email me a magic link</button>
+    </div>
 
     <div class="text-center text-xs text-gray-600 mt-6">
       Driver? <a href="./riders.html" class="text-yellow-dark font-bold hover:underline">Apply with verification</a>
@@ -80,7 +88,7 @@
 </div>
 
 <script type="module">
-import { isConfigured, signIn, signUp, signInMagicLink, getSession, getCurrentProfile } from "./assets/js/auth.js";
+import { isConfigured, signIn, signUp, signInMagicLink, sendPasswordReset, updatePassword, getSession, getCurrentProfile, onAuthChange } from "./assets/js/auth.js";
 
 const params = new URLSearchParams(location.search);
 const banner = document.getElementById("banner");
@@ -98,44 +106,84 @@ if (params.get("verify") === "1") {
   banner.insertAdjacentHTML("afterbegin", `<div class="bg-yellow-light border border-yellow-dark rounded-2xl p-4 mb-3 text-sm font-semibold">Check your email to confirm your account.</div>`);
 }
 
-// If already signed in, route to the right dashboard.
-(async () => {
-  const session = await getSession();
-  if (!session) return;
-  const me = await getCurrentProfile();
-  const next = params.get("next");
-  if (next) return location.href = next;
-  if (me?.role === "restaurant") return location.href = "./restaurants.html";
-  if (me?.role === "rider")      return location.href = "./rider-dashboard.html";
-  if (me?.role === "admin")      return location.href = "./admin.html";
-})();
-
-// Mode + role tabs
+// Mode: signin | signup | forgot | recovery
 let mode = "signin", role = "restaurant";
-const tabs = document.querySelectorAll("[data-mode]");
-const roleTabs = document.querySelectorAll("[data-role]");
-const roleRow = document.getElementById("roleRow");
-const nameRow = document.getElementById("nameRow");
-const phoneRow = document.getElementById("phoneRow");
-const title = document.getElementById("title");
+// Recovery mode is special: the user landed here from a password-reset email;
+// supabase-js parses the recovery token from the URL hash automatically and
+// fires the `PASSWORD_RECOVERY` event. We then show the "set new password"
+// form and SUPPRESS the usual auto-redirect to a dashboard.
+let inRecovery = false;
+const url = new URL(location.href);
+const urlHasRecoveryToken = url.hash.includes("type=recovery") || url.searchParams.get("type") === "recovery";
+
+const tabs       = document.querySelectorAll("[data-mode]");
+const roleTabs   = document.querySelectorAll("[data-role]");
+const roleRow    = document.getElementById("roleRow");
+const nameRow    = document.getElementById("nameRow");
+const phoneRow   = document.getElementById("phoneRow");
+const emailRow   = document.getElementById("emailRow");
+const passwordRow    = document.getElementById("passwordRow");
+const newPasswordRow = document.getElementById("newPasswordRow");
+const altMethods     = document.getElementById("altMethods");
+const backToSigninBtn = document.getElementById("backToSignin");
+const forgotLink     = document.getElementById("forgotLink");
+const title    = document.getElementById("title");
+const subtitle = document.getElementById("subtitle");
 const submitBtn = document.getElementById("submitBtn");
+const form     = document.getElementById("authForm");
+const err  = document.getElementById("formError");
+const info = document.getElementById("formInfo");
+function showError(msg) { err.textContent = msg; err.classList.remove("hidden"); info.classList.add("hidden"); }
+function showInfo(msg)  { info.textContent = msg; info.classList.remove("hidden"); err.classList.add("hidden"); }
+function clearMsg()     { err.classList.add("hidden"); info.classList.add("hidden"); }
 
 function applyMode() {
-  tabs.forEach(t => t.classList.toggle("active", t.dataset.mode === mode));
+  clearMsg();
+  // Reset visibility — start from a clean slate every call.
+  emailRow.classList.remove("hidden");
+  passwordRow.classList.remove("hidden");
+  newPasswordRow.classList.add("hidden");
+  roleRow.classList.add("hidden");
+  nameRow.classList.add("hidden");
+  phoneRow.classList.add("hidden");
+  altMethods.classList.add("hidden");
+  backToSigninBtn.classList.add("hidden");
+  forgotLink.classList.add("hidden");
+  tabs.forEach(t => t.parentElement.classList.remove("hidden"));
+
   if (mode === "signin") {
+    tabs.forEach(t => t.classList.toggle("active", t.dataset.mode === "signin"));
     title.textContent = "Welcome back";
-    roleRow.classList.add("hidden");
-    nameRow.classList.add("hidden");
-    phoneRow.classList.add("hidden");
+    subtitle.textContent = "Sign in to find drivers or get discovered.";
     submitBtn.textContent = "Sign in";
-  } else {
+    forgotLink.classList.remove("hidden");
+    altMethods.classList.remove("hidden");
+  } else if (mode === "signup") {
+    tabs.forEach(t => t.classList.toggle("active", t.dataset.mode === "signup"));
     title.textContent = "Create your account";
+    subtitle.textContent = "Tell us a bit about yourself to get started.";
     roleRow.classList.remove("hidden");
     nameRow.classList.remove("hidden");
     phoneRow.classList.toggle("hidden", role !== "rider");
     submitBtn.textContent = role === "rider" ? "Create driver account" : "Create restaurant account";
+  } else if (mode === "forgot") {
+    tabs.forEach(t => t.parentElement.classList.add("hidden"));
+    title.textContent = "Reset your password";
+    subtitle.textContent = "We'll email you a secure link to set a new password.";
+    passwordRow.classList.add("hidden");
+    submitBtn.textContent = "Send reset link";
+    backToSigninBtn.classList.remove("hidden");
+  } else if (mode === "recovery") {
+    tabs.forEach(t => t.parentElement.classList.add("hidden"));
+    title.textContent = "Set a new password";
+    subtitle.textContent = "Pick a new password. You'll be signed in after.";
+    emailRow.classList.add("hidden");
+    passwordRow.classList.add("hidden");
+    newPasswordRow.classList.remove("hidden");
+    submitBtn.textContent = "Save new password";
   }
 }
+
 tabs.forEach(t => t.addEventListener("click", e => { e.preventDefault(); mode = t.dataset.mode; applyMode(); }));
 roleTabs.forEach(t => t.addEventListener("click", e => {
   e.preventDefault();
@@ -143,14 +191,56 @@ roleTabs.forEach(t => t.addEventListener("click", e => {
   roleTabs.forEach(x => x.classList.toggle("active", x.dataset.role === role));
   applyMode();
 }));
+forgotLink.addEventListener("click", () => { mode = "forgot"; applyMode(); });
+backToSigninBtn.addEventListener("click", () => { mode = "signin"; applyMode(); });
 
-const err = document.getElementById("formError");
-function showError(msg) { err.textContent = msg; err.classList.remove("hidden"); }
-function clearError() { err.classList.add("hidden"); }
+// Listen for the recovery event from supabase-js. This fires when the user
+// clicks the link in the reset email and the JS client picks up the hash token.
+if (isConfigured()) {
+  onAuthChange((session, event) => {
+    if (event === "PASSWORD_RECOVERY") {
+      inRecovery = true;
+      mode = "recovery";
+      applyMode();
+      // Strip the recovery hash so a refresh doesn't re-trigger it.
+      history.replaceState(null, "", location.pathname + "?reset=1");
+    }
+  });
+}
 
-document.getElementById("authForm").addEventListener("submit", async (e) => {
+// Initial routing decision.
+(async () => {
+  // If we landed from the reset email — token in hash OR ?reset=1 marker —
+  // stay in recovery mode and don't redirect to a dashboard, even on refresh.
+  if (urlHasRecoveryToken || params.get("reset") === "1") {
+    inRecovery = true;
+    mode = "recovery";
+    applyMode();
+    showInfo("Choose a new password below.");
+    return;
+  }
+
+  applyMode();
+
+  const session = isConfigured() ? await getSession() : null;
+  if (!session || inRecovery) return;
+
+  const me = await getCurrentProfile();
+  const next = params.get("next");
+  if (next) return location.href = next;
+  if (me?.role === "admin")      return location.href = "./admin.html";
+  if (me?.role === "restaurant") return location.href = "./restaurants.html";
+  if (me?.role === "rider") {
+    if (me.profile?.verification_status !== "verified") {
+      return location.href = "./riders.html?confirmed=1";
+    }
+    return location.href = "./rider-dashboard.html";
+  }
+})();
+
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
-  clearError();
+  clearMsg();
   if (!isConfigured()) return showError("Supabase isn't configured yet.");
   const f = new FormData(e.target);
   submitBtn.disabled = true; const origLabel = submitBtn.textContent; submitBtn.textContent = "Working…";
@@ -158,9 +248,18 @@ document.getElementById("authForm").addEventListener("submit", async (e) => {
     if (mode === "signin") {
       await signIn({ email: f.get("email"), password: f.get("password") });
       const me = await getCurrentProfile();
-      location.href = params.get("next") || (me?.role === "rider" ? "./rider-dashboard.html"
-        : me?.role === "admin" ? "./admin.html" : "./restaurants.html");
-    } else {
+      const next = params.get("next");
+      if (next) { location.href = next; return; }
+      if (me?.role === "admin")      { location.href = "./admin.html"; return; }
+      if (me?.role === "restaurant") { location.href = "./restaurants.html"; return; }
+      if (me?.role === "rider") {
+        location.href = me.profile?.verification_status === "verified"
+          ? "./rider-dashboard.html"
+          : "./riders.html?confirmed=1";
+        return;
+      }
+      location.href = "./index.html";
+    } else if (mode === "signup") {
       if (!f.get("displayName")) throw new Error("Please enter your name.");
       const res = await signUp({
         email: f.get("email"), password: f.get("password"),
@@ -172,6 +271,30 @@ document.getElementById("authForm").addEventListener("submit", async (e) => {
         return;
       }
       location.href = role === "rider" ? "./riders.html?verify=1" : "./restaurants.html";
+    } else if (mode === "forgot") {
+      const email = (f.get("email") || "").toString().trim();
+      if (!email) throw new Error("Enter the email on your account.");
+      await sendPasswordReset(email);
+      showInfo("Reset link sent. Check your email and follow the link to set a new password.");
+      submitBtn.disabled = true; submitBtn.textContent = "Sent ✓";
+      return;
+    } else if (mode === "recovery") {
+      const pw = (f.get("newPassword") || "").toString();
+      const confirm = (f.get("confirmPassword") || "").toString();
+      if (pw.length < 8) throw new Error("Password must be at least 8 characters.");
+      if (pw !== confirm) throw new Error("Passwords don't match.");
+      await updatePassword(pw);
+      showInfo("Password updated. Redirecting to your dashboard…");
+      const me = await getCurrentProfile();
+      setTimeout(() => {
+        if (me?.role === "admin")      location.href = "./admin.html";
+        else if (me?.role === "rider") {
+          location.href = me.profile?.verification_status === "verified"
+            ? "./rider-dashboard.html" : "./riders.html?confirmed=1";
+        } else if (me?.role === "restaurant") location.href = "./restaurants.html";
+        else location.href = "./index.html";
+      }, 1200);
+      return;
     }
   } catch (ex) {
     showError(ex.message || String(ex));
@@ -180,17 +303,16 @@ document.getElementById("authForm").addEventListener("submit", async (e) => {
 });
 
 document.getElementById("magicBtn").addEventListener("click", async () => {
-  clearError();
+  clearMsg();
   if (!isConfigured()) return showError("Supabase isn't configured yet.");
   const email = document.querySelector("input[name=email]").value;
   if (!email) return showError("Enter your email above first.");
   try {
     await signInMagicLink({ email });
-    footerMsg.textContent = "Magic link sent. Check your email.";
+    showInfo("Magic link sent. Check your email.");
   } catch (ex) { showError(ex.message); }
 });
-
-applyMode();
 </script>
+<script type="module" src="./assets/js/main.js"></script>
 </body>
 </html>

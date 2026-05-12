@@ -21,26 +21,23 @@ export async function getUser() {
 
 export async function signUp({ email, password, role, displayName, phone, whatsapp }) {
   if (!HAS_SUPABASE) throw new Error("Auth not configured");
+  // The DB trigger `public.handle_new_user` reads role/display_name/phone/whatsapp
+  // from raw_user_meta_data and creates the matching restaurants/riders row.
+  // This is the only safe path when email confirmation is enabled — the client
+  // is not yet authenticated at this point, so any RLS-gated insert would fail.
   const { data, error } = await supabase.auth.signUp({
     email, password,
-    options: { data: { role, display_name: displayName } },
+    options: {
+      data: {
+        role,
+        display_name: displayName,
+        phone: phone || null,
+        whatsapp: whatsapp || null,
+      },
+      emailRedirectTo: window.location.origin + "/auth.html?confirmed=1",
+    },
   });
   if (error) throw error;
-  const user = data.user;
-  if (!user) return data;
-
-  // Insert role-specific profile row. Trigger-friendly upsert by user_id.
-  if (role === "restaurant") {
-    await supabase.from("restaurants").upsert({
-      user_id: user.id, name: displayName, contact_phone: phone, whatsapp,
-    }, { onConflict: "user_id" });
-  } else if (role === "rider") {
-    await supabase.from("riders").upsert({
-      user_id: user.id, name: displayName, phone, whatsapp,
-      vehicle_type: "motorcycle", availability_status: "offline",
-      verification_status: "pending",
-    }, { onConflict: "user_id" });
-  }
   cachedProfile = null;
   return data;
 }
@@ -61,6 +58,24 @@ export async function signInMagicLink({ email, redirectTo }) {
   if (error) throw error;
 }
 
+// Sends a password-reset email. The link in the email lands back on /auth.html;
+// supabase-js auto-detects the recovery token (detectSessionInUrl) and creates
+// a short-lived session that can only call updateUser({password}).
+export async function sendPasswordReset(email) {
+  if (!HAS_SUPABASE) throw new Error("Auth not configured");
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + "/auth.html?reset=1",
+  });
+  if (error) throw error;
+}
+
+// Called from the "set a new password" form after the user clicks the reset link.
+export async function updatePassword(newPassword) {
+  if (!HAS_SUPABASE) throw new Error("Auth not configured");
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw error;
+}
+
 export async function signOut() {
   if (!HAS_SUPABASE) return;
   await supabase.auth.signOut();
@@ -68,11 +83,13 @@ export async function signOut() {
   location.href = "./index.html";
 }
 
+// Callback receives (session, event). Event values: 'INITIAL_SESSION',
+// 'SIGNED_IN', 'SIGNED_OUT', 'TOKEN_REFRESHED', 'USER_UPDATED', 'PASSWORD_RECOVERY'.
 export function onAuthChange(cb) {
   if (!HAS_SUPABASE) return () => {};
-  const { data } = supabase.auth.onAuthStateChange((_evt, session) => {
+  const { data } = supabase.auth.onAuthStateChange((event, session) => {
     cachedProfile = null;
-    cb(session);
+    cb(session, event);
   });
   return () => data.subscription.unsubscribe();
 }

@@ -3,42 +3,58 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Driver Marketplace · YUMYUMPO Dispatch</title>
+<title>Browse Drivers · YUMYUMPO Dispatch</title>
+<link rel="icon" type="image/svg+xml" href="./assets/favicon.svg"/>
+<link rel="apple-touch-icon" href="./assets/favicon.svg"/>
 <link rel="manifest" href="./manifest.webmanifest"/>
 <meta name="theme-color" content="#FFD000"/>
+<meta property="og:site_name" content="YUMYUMPO Dispatch"/>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="Browse Drivers · YUMYUMPO Dispatch"/>
+<meta property="og:description" content="Find verified independent delivery drivers near you. Filter by zone, vehicle, and availability."/>
+<meta property="og:image" content="./assets/og-image.svg"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="./assets/og-image.svg"/>
 <script src="./assets/js/config.js" onerror="window.__noConfig=true"></script>
-<script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./assets/css/styles.css"/>
-<script>
-  tailwind.config = { theme: { extend: {
-    colors: {
-      'brand-yellow':'#FFD000','yellow-dark':'#E6BB00','yellow-light':'#FFF9D6','yellow-pale':'#FFFDF0',
-      'brand-black':'#111111','black-soft':'#1E1E1E',
-      'gray-50':'#F9F9F9','gray-100':'#F3F3F3','gray-200':'#E8E8E8','gray-400':'#ABABAB','gray-600':'#6B6B6B',
-      cream:'#FFFFFF', warm:'#F9F9F9', beige:'#FFF9D6', charcoal:'#111111', ink:'#1E1E1E', ember:'#FFD000', dust:'#6B6B6B'
-    },
-    fontFamily: { display:['"Space Grotesk"','Inter','system-ui','sans-serif'], sans:['Inter','system-ui','sans-serif'] }
-  }}};
-</script>
 </head>
 <body class="bg-cream text-charcoal font-sans">
 
-<header class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-cream/70 border-b border-charcoal/5">
+<header class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-white/85 border-b border-gray-200">
   <div class="max-w-7xl mx-auto px-5 md:px-8 h-16 flex items-center justify-between">
     <a href="./index.html" class="flex items-center gap-2">
-      <span class="w-8 h-8 rounded-full bg-charcoal text-cream grid place-items-center font-display text-sm">Y</span>
-      <span class="font-display text-lg">YUMYUMPO <span class="text-ember">Dispatch</span></span>
+      <span class="w-9 h-9 rounded-2xl bg-brand-yellow text-brand-black grid place-items-center font-display font-black">Y</span>
+      <span class="font-display font-bold text-lg">YUMYUMPO <span class="text-yellow-dark">Dispatch</span></span>
     </a>
-    <nav class="hidden md:flex items-center gap-8 text-sm text-charcoal/70">
-      <a href="./restaurants.html" class="hover:text-charcoal">Restaurants</a>
-      <a href="./riders.html" class="hover:text-charcoal">Riders</a>
-      <a href="./marketplace.html" class="text-charcoal">Marketplace</a>
-      <a href="./about.html" class="hover:text-charcoal">About</a>
+    <nav class="hidden md:flex items-center gap-7 text-sm font-semibold text-gray-600">
+      <a href="./restaurants.html" class="hover:text-brand-black">Restaurants</a>
+      <a href="./marketplace.html" class="text-brand-black">Drivers</a>
+      <a href="./about.html"       class="hover:text-brand-black">About</a>
     </nav>
-    <a href="./auth.html" class="btn-primary !py-2 !px-4 text-sm">Sign in</a>
+    <div class="flex items-center gap-3">
+      <a href="./auth.html" class="hidden md:inline-flex btn-primary !py-2 !px-4 text-sm">Sign in</a>
+      <button type="button" class="menu-trigger" data-drawer-target="#mobileNav" aria-label="Open menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
   </div>
 </header>
+
+<aside id="mobileNav" class="drawer-panel" aria-label="Site menu">
+  <div class="drawer-head">
+    <div class="flex items-center gap-2"><span class="w-9 h-9 rounded-2xl bg-brand-yellow text-brand-black grid place-items-center font-display font-black">Y</span><span class="font-display font-bold">Dispatch</span></div>
+    <button type="button" class="drawer-close" data-drawer-close aria-label="Close menu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
+  </div>
+  <nav class="drawer-body">
+    <a href="./index.html" class="drawer-link">🏠 Home</a>
+    <a href="./restaurants.html" class="drawer-link">🏪 Restaurants</a>
+    <a href="./marketplace.html" class="drawer-link">🛵 Drivers</a>
+    <a href="./about.html" class="drawer-link">💛 About</a>
+    <a href="./auth.html" class="drawer-link">Sign in</a>
+    <a href="./riders.html" class="drawer-link cta">Join as Driver</a>
+  </nav>
+</aside>
 
 <section class="pt-28 pb-10 border-b border-charcoal/5">
   <div class="max-w-7xl mx-auto px-5 md:px-8">
@@ -68,13 +84,14 @@
   </div>
 </section>
 
-<footer class="border-t border-charcoal/10 py-8 text-center text-xs text-charcoal/40">© 2026 YUMYUMPO Dispatch</footer>
+<footer class="border-t border-gray-200 py-8 text-center text-xs text-gray-400">© 2026 YUMYUMPO Dispatch</footer>
+<script type="module" src="./assets/js/main.js"></script>
 
 <script type="module">
 import { fetchRiders, togglePreferred, fetchPreferredRiderIds, getZones, enums, getRestaurantByUser } from "./assets/js/api.js";
 import { getUser } from "./assets/js/auth.js";
 import { renderSessionBadge } from "./assets/js/session-ui.js";
-import { riderCard, emptyState, toast } from "./assets/js/components.js";
+import { riderCard, emptyState, toast, esc, attr } from "./assets/js/components.js";
 
 const sessionSlot = document.querySelector("a[href='./auth.html']")?.parentElement?.appendChild(document.createElement("div"));
 if (sessionSlot) renderSessionBadge(sessionSlot);
@@ -83,9 +100,9 @@ let viewerRestaurantId = null;
 try { const u = await getUser(); if (u) { const rs = await getRestaurantByUser(u.id); viewerRestaurantId = rs?.id || null; } } catch {}
 
 const zoneSel = document.getElementById("filterZone");
-(await getZones()).forEach(z => zoneSel.insertAdjacentHTML("beforeend", `<option>${z}</option>`));
+(await getZones()).forEach(z => zoneSel.insertAdjacentHTML("beforeend", `<option value="${attr(z)}">${esc(z)}</option>`));
 const vehSel = document.getElementById("filterVehicle");
-enums.VEHICLES.forEach(v => vehSel.insertAdjacentHTML("beforeend", `<option value="${v}">${v}</option>`));
+enums.VEHICLES.forEach(v => vehSel.insertAdjacentHTML("beforeend", `<option value="${attr(v)}">${esc(v)}</option>`));
 
 async function render() {
   const grid = document.getElementById("grid");

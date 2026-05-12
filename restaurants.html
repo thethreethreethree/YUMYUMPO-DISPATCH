@@ -4,26 +4,26 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Restaurant Dashboard · YUMYUMPO Dispatch</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<link rel="icon" type="image/svg+xml" href="./assets/favicon.svg"/>
+<link rel="apple-touch-icon" href="./assets/favicon.svg"/>
+<meta name="theme-color" content="#FFD000"/>
+<meta name="robots" content="noindex,nofollow"/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./assets/css/styles.css"/>
 <script src="./assets/js/config.js" onerror="window.__noConfig=true"></script>
-<script>
-  tailwind.config = { theme: { extend: {
-    colors: {
-      'brand-yellow':'#FFD000','yellow-dark':'#E6BB00','yellow-light':'#FFF9D6','yellow-pale':'#FFFDF0',
-      'brand-black':'#111111','black-soft':'#1E1E1E',
-      'gray-50':'#F9F9F9','gray-100':'#F3F3F3','gray-200':'#E8E8E8','gray-400':'#ABABAB','gray-600':'#6B6B6B',
-      cream:'#FFFFFF', warm:'#F9F9F9', beige:'#FFF9D6', charcoal:'#111111', ink:'#1E1E1E', ember:'#FFD000', dust:'#6B6B6B'
-    },
-    fontFamily: { display:['"Space Grotesk"','Inter','system-ui','sans-serif'], sans:['Inter','system-ui','sans-serif'] }
-  }}};
-</script>
 </head>
 <body class="font-sans bg-gray-50 text-brand-black">
 
+<header class="dash-mobilebar">
+  <button type="button" class="menu-trigger" data-drawer-target="#dashSide" aria-label="Open menu">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div class="flex items-center gap-2"><span class="w-7 h-7 rounded-xl bg-brand-yellow text-brand-black grid place-items-center font-display font-black text-sm">Y</span><span class="font-display font-bold text-sm">Dispatch</span></div>
+  <span class="w-10"></span>
+</header>
+
 <div class="dash-shell">
-  <aside class="dash-side">
+  <aside class="dash-side" id="dashSide">
     <a href="./index.html" class="flex items-center gap-2 mb-10">
       <span class="w-9 h-9 rounded-2xl bg-brand-yellow text-brand-black grid place-items-center font-display font-black">Y</span>
       <span class="font-display font-bold text-base">Dispatch</span>
@@ -117,7 +117,7 @@ import {
   togglePreferred, fetchPreferredRiderIds, submitRating,
   createDeliveryRequest, cancelRequest, enums, trackEvent,
 } from "./assets/js/api.js";
-import { riderCard, emptyState, toast, modal, closeModal } from "./assets/js/components.js";
+import { riderCard, emptyState, toast, modal, closeModal, esc, attr } from "./assets/js/components.js";
 import { mountNotificationCenter } from "./assets/js/notification-center.js";
 import { notifyRequestCreated } from "./assets/js/notifications.js";
 
@@ -134,7 +134,7 @@ if (isConfigured()) {
   document.body.insertAdjacentHTML("beforeend",
     `<div class="config-banner">⚠ Running in preview mode without Supabase. Copy <code>assets/js/config.example.js</code> → <code>assets/js/config.js</code> and add your keys.</div>`);
 }
-document.getElementById("restaurantName").textContent = restaurant.name;
+document.getElementById("restaurantName").textContent = restaurant.name || "Restaurant";
 renderSessionBadge(sessionSlot);
 bindAuthRefresh(sessionSlot);
 
@@ -143,9 +143,9 @@ mountNotificationCenter(document.getElementById("notifSlot"), { type:"restaurant
 // === Filters ==============================================================
 const zoneSel = document.getElementById("filterZone");
 const zones = await getZones();
-zones.forEach(z => zoneSel.insertAdjacentHTML("beforeend", `<option>${z}</option>`));
+zones.forEach(z => zoneSel.insertAdjacentHTML("beforeend", `<option value="${attr(z)}">${esc(z)}</option>`));
 const vehSel = document.getElementById("filterVehicle");
-enums.VEHICLES.forEach(v => vehSel.insertAdjacentHTML("beforeend", `<option value="${v}">${v}</option>`));
+enums.VEHICLES.forEach(v => vehSel.insertAdjacentHTML("beforeend", `<option value="${attr(v)}">${esc(v)}</option>`));
 
 // === Tabs =================================================================
 document.querySelectorAll("[data-tab]").forEach(a => {
@@ -227,21 +227,23 @@ async function renderRequests() {
     if (!rows.length) { tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-sm text-gray-600">No requests yet. Create one above.</td></tr>`; return; }
     tbody.innerHTML = rows.map(r => {
       const ts = r.created_at || r.created || "";
-      const ridName = r.rider_id ? (map[r.rider_id]?.name || "—") : (r.rider ? (map[r.rider]?.name || "—") : "<span class='text-gray-400'>Awaiting</span>");
+      const ridKey = r.rider_id || r.rider;
+      const ridName = ridKey ? esc(map[ridKey]?.name || "—") : `<span class='text-gray-400'>Awaiting</span>`;
       const canCancel = ["Available","Accepted"].includes(r.status);
+      const statusClass = r.status === "Delivered" ? "badge-verified" : "badge-zone";
       return `<tr class="border-t border-gray-100">
-        <td class="p-4 text-gray-600">${formatTime(ts)}</td>
-        <td class="p-4 font-semibold">${r.zone}</td>
-        <td class="p-4">${r.dropoff}</td>
+        <td class="p-4 text-gray-600">${esc(formatTime(ts))}</td>
+        <td class="p-4 font-semibold">${esc(r.zone)}</td>
+        <td class="p-4">${esc(r.dropoff)}</td>
         <td class="p-4">${ridName}</td>
-        <td class="p-4"><span class="badge ${r.status==="Delivered"?"badge-verified":"badge-zone"}">${r.status}</span></td>
-        <td class="p-4 text-right">${canCancel ? `<button class="text-xs font-bold text-red-600 hover:underline cancel-btn" data-id="${r.id}">Cancel</button>` : ""}</td>
+        <td class="p-4"><span class="badge ${statusClass}">${esc(r.status)}</span></td>
+        <td class="p-4 text-right">${canCancel ? `<button class="text-xs font-bold text-red-600 hover:underline cancel-btn" data-id="${attr(r.id)}">Cancel</button>` : ""}</td>
       </tr>`;
     }).join("");
     tbody.querySelectorAll(".cancel-btn").forEach(b => b.addEventListener("click", async () => {
       try { await cancelRequest(b.dataset.id); toast("Request cancelled"); renderRequests(); loadKPIs(); } catch(e){ toast(e.message); }
     }));
-  } catch (e) { tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-sm text-red-600">${e.message}</td></tr>`; }
+  } catch (e) { tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-sm text-red-600">${esc(e.message)}</td></tr>`; }
 }
 
 async function renderRate() {
@@ -251,21 +253,23 @@ async function renderRate() {
   if (!riderIds.length) { wrap.innerHTML = emptyState("No deliveries to rate yet", "After a delivery is marked complete, you can rate the driver here."); return; }
   const riders = await fetchRiders();
   const visible = riders.filter(r => riderIds.includes(r.id)).slice(0, 8);
-  wrap.innerHTML = visible.map(r => `
+  wrap.innerHTML = visible.map(r => {
+    const photo = /^https?:\/\//.test(r.photo || "") ? r.photo : "https://placehold.co/120x120/FFD000/111111?text=Y";
+    return `
     <div class="bg-white rounded-2xl border border-gray-200 p-5">
       <div class="flex items-center gap-3 mb-3">
-        <img src="${r.photo}" class="w-10 h-10 rounded-full object-cover"/>
-        <div><div class="font-display font-bold">${r.name}</div><div class="text-xs text-gray-600 capitalize">${r.vehicle}</div></div>
+        <img src="${attr(photo)}" alt="${attr(r.name)}" class="w-10 h-10 rounded-full object-cover" referrerpolicy="no-referrer"/>
+        <div><div class="font-display font-bold">${esc(r.name)}</div><div class="text-xs text-gray-600 capitalize">${esc(r.vehicle)}</div></div>
       </div>
       ${[["punctuality","Punctuality"],["professionalism","Professionalism"],["communication","Communication"],["reliability","Reliability"],["food_handling","Food handling"]].map(([k,label]) => `
         <div class="flex items-center justify-between text-sm mb-2">
           <span class="text-gray-600">${label}</span>
-          <div class="flex gap-1 stars" data-rider="${r.id}" data-metric="${k}">
-            ${[1,2,3,4,5].map(n => `<button data-n="${n}" class="text-gray-300 hover:text-brand-yellow transition" type="button">★</button>`).join("")}
+          <div class="flex gap-1 stars" data-rider="${attr(r.id)}" data-metric="${attr(k)}">
+            ${[1,2,3,4,5].map(n => `<button data-n="${n}" class="text-gray-300 hover:text-brand-yellow transition" type="button" aria-label="Rate ${label} ${n} of 5">★</button>`).join("")}
           </div>
         </div>`).join("")}
-    </div>
-  `).join("");
+    </div>`;
+  }).join("");
   wrap.querySelectorAll(".stars").forEach(s => {
     s.querySelectorAll("button").forEach(b => b.addEventListener("click", async () => {
       const n = +b.dataset.n;
@@ -288,10 +292,10 @@ function openRequest() {
     <div class="text-xs uppercase tracking-widest text-yellow-dark font-bold mb-2">New delivery request</div>
     <h2 class="font-display text-2xl font-bold mb-4">Signal demand to drivers in your zone</h2>
     <form id="reqForm" class="space-y-3">
-      <input class="field" name="pickup" placeholder="Pickup location" value="${escapeAttr(restaurant.name)}" required/>
-      <input class="field" name="dropoff" placeholder="Dropoff address" required/>
-      <select class="field" name="zone" required>${zones.map(z => `<option>${z}</option>`).join("")}</select>
-      <textarea class="field" rows="3" name="notes" placeholder="Notes (optional)"></textarea>
+      <input class="field" name="pickup" placeholder="Pickup location" value="${attr(restaurant.name || "")}" required maxlength="200"/>
+      <input class="field" name="dropoff" placeholder="Dropoff address" required maxlength="200"/>
+      <select class="field" name="zone" required>${zones.map(z => `<option value="${attr(z)}">${esc(z)}</option>`).join("")}</select>
+      <textarea class="field" rows="3" name="notes" placeholder="Notes (optional)" maxlength="500"></textarea>
       <div id="reqErr" class="text-sm text-red-600 font-semibold hidden"></div>
       <div class="flex gap-2 justify-end pt-2">
         <button type="button" class="btn-ghost" id="cancelReq">Cancel</button>
@@ -318,11 +322,11 @@ function openRequest() {
     }
   });
 }
-function escapeAttr(s) { return String(s ?? "").replace(/"/g,"&quot;"); }
 document.getElementById("newRequestBtn").addEventListener("click", openRequest);
 document.getElementById("mNewReq").addEventListener("click", openRequest);
 
 renderRiders();
 </script>
+<script type="module" src="./assets/js/main.js"></script>
 </body>
 </html>

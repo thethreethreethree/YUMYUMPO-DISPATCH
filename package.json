@@ -1,0 +1,13 @@
+{
+  "name": "yumyumpo-dispatch",
+  "version": "1.0.0",
+  "private": true,
+  "description": "YUMYUMPO Dispatch — driver discovery static site. No bundler; only Tailwind CSS is built ahead of time.",
+  "scripts": {
+    "build": "tailwindcss -i ./src/input.css -o ./assets/css/styles.css --minify",
+    "watch": "tailwindcss -i ./src/input.css -o ./assets/css/styles.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.13"
+  }
+}

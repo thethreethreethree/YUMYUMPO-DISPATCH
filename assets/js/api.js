@@ -121,6 +121,15 @@ export async function createDeliveryRequest(payload) {
 }
 
 export async function fetchRequests(filters = {}) {
+  // Guard: callers pass `openInZones: rider.zones` for the driver feed. If the
+  // driver hasn't set any zones yet, an empty array would translate to
+  // `.in('zone', [])` which Postgres / PostgREST treats as match-all — so a
+  // newly-confirmed driver with zero zones would suddenly see every open
+  // request in the network. Short-circuit to an empty result instead.
+  if (Array.isArray(filters.openInZones) && filters.openInZones.length === 0) {
+    return [];
+  }
+
   if (isProd()) {
     let q = supabase.from("delivery_requests").select("*").order("created_at", { ascending: false });
     if (filters.restaurant_id) q = q.eq("restaurant_id", filters.restaurant_id);
@@ -138,13 +147,19 @@ export async function fetchRequests(filters = {}) {
 export async function acceptRequest(requestId, riderId) {
   if (!isProd()) {
     const r = REQUESTS.find(x => x.id === requestId);
-    if (r) { r.status = "Accepted"; r.rider = riderId; }
+    if (!r || r.status !== "Available") return null;
+    r.status = "Accepted"; r.rider = riderId; r.accepted_at = new Date().toISOString();
     return r;
   }
+  // Race-safe: only the first writer whose `status='Available'` predicate still
+  // matches will see a row come back. Subsequent writers get `data === null`
+  // (not an error) so we can surface a friendly "already taken" message.
   const { data, error } = await supabase.from("delivery_requests")
     .update({ status: "Accepted", rider_id: riderId, accepted_at: new Date().toISOString() })
-    .eq("id", requestId).eq("status", "Available").select().single();
+    .eq("id", requestId).eq("status", "Available")
+    .select().maybeSingle();
   if (error) throw error;
+  if (!data) return null;
   await logActivity(requestId, "request_accepted", { rider_id: riderId });
   return data;
 }

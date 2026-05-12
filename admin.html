@@ -4,26 +4,26 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Admin · YUMYUMPO Dispatch</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<link rel="icon" type="image/svg+xml" href="./assets/favicon.svg"/>
+<link rel="apple-touch-icon" href="./assets/favicon.svg"/>
+<meta name="theme-color" content="#FFD000"/>
+<meta name="robots" content="noindex,nofollow"/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./assets/css/styles.css"/>
 <script src="./assets/js/config.js" onerror="window.__noConfig=true"></script>
-<script>
-  tailwind.config = { theme: { extend: {
-    colors: {
-      'brand-yellow':'#FFD000','yellow-dark':'#E6BB00','yellow-light':'#FFF9D6','yellow-pale':'#FFFDF0',
-      'brand-black':'#111111','black-soft':'#1E1E1E',
-      'gray-50':'#F9F9F9','gray-100':'#F3F3F3','gray-200':'#E8E8E8','gray-400':'#ABABAB','gray-600':'#6B6B6B',
-      cream:'#FFFFFF', warm:'#F9F9F9', beige:'#FFF9D6', charcoal:'#111111', ink:'#1E1E1E', ember:'#FFD000', dust:'#6B6B6B'
-    },
-    fontFamily: { display:['"Space Grotesk"','Inter','system-ui','sans-serif'], sans:['Inter','system-ui','sans-serif'] }
-  }}};
-</script>
 </head>
 <body class="bg-gray-50 text-brand-black font-sans">
 
+<header class="dash-mobilebar">
+  <button type="button" class="menu-trigger" data-drawer-target="#dashSide" aria-label="Open menu">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div class="flex items-center gap-2"><span class="w-7 h-7 rounded-xl bg-brand-yellow text-brand-black grid place-items-center font-display font-black text-sm">Y</span><span class="font-display font-bold text-sm">Admin</span></div>
+  <span class="w-10"></span>
+</header>
+
 <div class="dash-shell">
-  <aside class="dash-side">
+  <aside class="dash-side" id="dashSide">
     <a href="./index.html" class="flex items-center gap-2 mb-10">
       <span class="w-9 h-9 rounded-2xl bg-brand-yellow text-brand-black grid place-items-center font-display font-black">Y</span>
       <span class="font-display font-bold text-base">Admin</span>
@@ -93,7 +93,7 @@ import { isConfigured, requireAuth, getCurrentProfile, getUser } from "./assets/
 import { renderSessionBadge, bindAuthRefresh } from "./assets/js/session-ui.js";
 import { supabase, HAS_SUPABASE } from "./assets/js/supabase.js";
 import { fetchRiders, getZones, fetchPendingVerifications, decideVerification, fetchRequests } from "./assets/js/api.js";
-import { toast } from "./assets/js/components.js";
+import { toast, esc, attr, safeImg } from "./assets/js/components.js";
 import { mountNotificationCenter } from "./assets/js/notification-center.js";
 import { pushNotification } from "./assets/js/notifications.js";
 
@@ -142,21 +142,22 @@ async function renderPending() {
     if (!data.length) { list.innerHTML = `<div class="bg-white border border-gray-200 rounded-2xl p-6 text-sm text-gray-600">No pending verifications.</div>`; return; }
     list.innerHTML = data.map(v => {
       const r = v.riders || {};
+      const photo = safeImg(r.profile_photo, "https://placehold.co/120x120/FFD000/111111?text=Y");
       return `
-      <div class="bg-white border border-gray-200 rounded-2xl p-5 flex items-center gap-4 flex-wrap" data-vid="${v.id}" data-rid="${v.rider_id}">
-        <img src="${r.profile_photo || 'https://i.pravatar.cc/120?u=' + v.rider_id}" class="w-14 h-14 rounded-full object-cover"/>
+      <div class="bg-white border border-gray-200 rounded-2xl p-5 flex items-center gap-4 flex-wrap" data-vid="${attr(v.id)}" data-rid="${attr(v.rider_id)}">
+        <img src="${photo}" alt="${attr(r.name)}" class="w-14 h-14 rounded-full object-cover" referrerpolicy="no-referrer"/>
         <div class="flex-1 min-w-[200px]">
-          <div class="font-display font-bold text-lg">${r.name || "—"}</div>
-          <div class="text-xs text-gray-600 capitalize">${r.vehicle_type || "—"} · ${(r.delivery_zones||[]).join(", ") || "no zones"}</div>
+          <div class="font-display font-bold text-lg">${esc(r.name || "—")}</div>
+          <div class="text-xs text-gray-600 capitalize">${esc(r.vehicle_type || "—")} · ${esc((r.delivery_zones||[]).join(", ") || "no zones")}</div>
           <div class="mt-2 flex gap-2 flex-wrap">
-            ${v.id_url ? `<a class="badge badge-zone" data-doc="${v.id_url}" data-bucket="verifications">ID</a>` : ""}
-            ${v.selfie_url ? `<a class="badge badge-zone" data-doc="${v.selfie_url}" data-bucket="verifications">Selfie</a>` : ""}
-            ${v.video_url ? `<a class="badge badge-zone" data-doc="${v.video_url}" data-bucket="verifications">Video</a>` : ""}
+            ${v.id_url     ? `<a class="badge badge-zone cursor-pointer" data-doc="${attr(v.id_url)}" data-bucket="verifications">ID</a>` : ""}
+            ${v.selfie_url ? `<a class="badge badge-zone cursor-pointer" data-doc="${attr(v.selfie_url)}" data-bucket="verifications">Selfie</a>` : ""}
+            ${v.video_url  ? `<a class="badge badge-zone cursor-pointer" data-doc="${attr(v.video_url)}" data-bucket="verifications">Video</a>` : ""}
           </div>
         </div>
         <div class="flex gap-2">
-          <button class="btn-ghost reject">Reject</button>
-          <button class="btn-primary approve">Approve</button>
+          <button class="btn-ghost reject" type="button">Reject</button>
+          <button class="btn-primary approve" type="button">Approve</button>
         </div>
       </div>`;
     }).join("");
@@ -187,7 +188,7 @@ async function renderPending() {
       const { data, error } = await supabase.storage.from(a.dataset.bucket).createSignedUrl(a.dataset.doc, 60);
       if (!error && data?.signedUrl) window.open(data.signedUrl, "_blank");
     }));
-  } catch (e) { list.innerHTML = `<div class="text-sm text-red-600">${e.message}</div>`; }
+  } catch (e) { list.innerHTML = `<div class="text-sm text-red-600">${esc(e.message)}</div>`; }
 }
 
 // === Riders table ==========================================================
@@ -200,15 +201,19 @@ async function renderRiders() {
         <th class="p-4">Name</th><th class="p-4">Vehicle</th><th class="p-4">Zones</th>
         <th class="p-4">Rating</th><th class="p-4">Status</th><th class="p-4"></th>
       </tr></thead>
-      <tbody>${riders.map(r => `
+      <tbody>${riders.map(r => {
+        const photo = safeImg(r.photo, "https://placehold.co/56x56/FFD000/111111?text=Y");
+        const statusClass = ["online","available","busy","offline"].includes(r.status) ? r.status : "offline";
+        const rating = Number(r.rating) || 0;
+        return `
         <tr class="border-t border-gray-100">
-          <td class="p-4 flex items-center gap-2"><img src="${r.photo}" class="w-7 h-7 rounded-full"/>${r.name}</td>
-          <td class="p-4 capitalize">${r.vehicle}</td>
-          <td class="p-4 text-gray-600">${r.zones.join(", ")}</td>
-          <td class="p-4 font-bold">${r.rating ? r.rating.toFixed(1) : "—"}</td>
-          <td class="p-4"><span class="status-dot status-${r.status}"></span> <span class="capitalize">${r.status}</span></td>
-          <td class="p-4 text-right"><button class="text-xs font-bold text-red-600 hover:underline suspend-btn" data-id="${r.id}">Suspend</button></td>
-        </tr>`).join("")}
+          <td class="p-4 flex items-center gap-2"><img src="${photo}" alt="" class="w-7 h-7 rounded-full" referrerpolicy="no-referrer"/>${esc(r.name)}</td>
+          <td class="p-4 capitalize">${esc(r.vehicle)}</td>
+          <td class="p-4 text-gray-600">${esc((r.zones||[]).join(", "))}</td>
+          <td class="p-4 font-bold">${rating ? rating.toFixed(1) : "—"}</td>
+          <td class="p-4"><span class="status-dot status-${statusClass}"></span> <span class="capitalize">${esc(r.status)}</span></td>
+          <td class="p-4 text-right"><button class="text-xs font-bold text-red-600 hover:underline suspend-btn" data-id="${attr(r.id)}" type="button">Suspend</button></td>
+        </tr>`;}).join("")}
       </tbody>
     </table>`;
   document.querySelectorAll(".suspend-btn").forEach(b => b.addEventListener("click", async () => {
@@ -227,10 +232,10 @@ async function renderRestaurants() {
   const wrap = document.getElementById("restaurantTable");
   if (!HAS_SUPABASE) { wrap.innerHTML = `<div class="text-sm text-gray-600">Connect Supabase to view restaurants.</div>`; return; }
   const { data, error } = await supabase.from("restaurants").select("*").order("created_at", { ascending: false });
-  if (error) { wrap.innerHTML = `<div class="text-sm text-red-600">${error.message}</div>`; return; }
+  if (error) { wrap.innerHTML = `<div class="text-sm text-red-600">${esc(error.message)}</div>`; return; }
   document.getElementById("kpiRestaurants").textContent = data.length;
   wrap.innerHTML = data.length
-    ? `<ul class="space-y-3">${data.map(r => `<li class="flex items-center justify-between"><div><div class="font-display font-bold">${r.name}</div><div class="text-xs text-gray-600">${r.city || r.default_zone || ""}</div></div><span class="badge badge-verified">Active</span></li>`).join("")}</ul>`
+    ? `<ul class="space-y-3">${data.map(r => `<li class="flex items-center justify-between"><div><div class="font-display font-bold">${esc(r.name)}</div><div class="text-xs text-gray-600">${esc(r.city || r.default_zone || "")}</div></div><span class="badge badge-verified">Active</span></li>`).join("")}</ul>`
     : `<div class="text-sm text-gray-600">No restaurants yet.</div>`;
 }
 
@@ -239,7 +244,7 @@ async function renderZones() {
   const zones = await getZones();
   document.getElementById("zoneAdmin").innerHTML = zones.map(z => `
     <div class="bg-white border border-gray-200 rounded-2xl p-4 flex items-center justify-between">
-      <div class="font-display font-bold">${z}</div><span class="badge badge-verified">Active</span>
+      <div class="font-display font-bold">${esc(z)}</div><span class="badge badge-verified">Active</span>
     </div>`).join("");
 }
 
@@ -274,5 +279,6 @@ renderRestaurants();
 renderZones();
 renderAnalytics();
 </script>
+<script type="module" src="./assets/js/main.js"></script>
 </body>
 </html>

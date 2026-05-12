@@ -27,12 +27,20 @@ Reference brand: [YUMYUMPO Discovery](https://thethreethreethree.github.io/YUMYU
 
 | Layer       | Tech |
 |-------------|------|
-| Frontend    | HTML5, Tailwind CSS (CDN), vanilla ES modules |
+| Frontend    | HTML5, **Tailwind CSS (pre-built)**, vanilla ES modules |
 | Backend     | Supabase (PostgreSQL, Auth, Storage, Realtime) |
 | Hosting     | Static — Vercel, GitHub Pages, Netlify, Cloudflare Pages |
 | Offline/PWA | Service worker + Web Manifest |
 
-No build step. No bundler. Just static files.
+The only build step is a single Tailwind CLI pass that emits `assets/css/styles.css` from `src/input.css` + `tailwind.config.js`. No bundler, no framework.
+
+```bash
+npm install        # one-time, installs Tailwind CLI as a devDependency
+npm run build      # generates assets/css/styles.css (~37 KB minified)
+npm run watch      # rebuilds on every change while you develop
+```
+
+On Vercel the `vercel.json` already runs `npm run build` on every deploy. For GitHub Pages, run `npm run build` before pushing so the built CSS is committed.
 
 ---
 
@@ -41,12 +49,11 @@ No build step. No bundler. Just static files.
 ### 1. Create your Supabase project
 1. Sign up at [supabase.com](https://supabase.com) and create a new project.
 2. Open **SQL Editor** → paste `supabase/schema.sql` → **Run**. (Idempotent — safe to re-run.)
-3. In **Storage**, create two buckets:
-   - `verifications` — **private**
-   - `avatars` — **public**
-4. Run the storage policy SQL at the bottom of `schema.sql` (or paste them in **Storage → Policies**).
-5. In **Authentication → Providers**, enable Email (password + magic link).
-6. (Optional) Configure your SMTP under **Authentication → Email Templates** for branded emails.
+   - This creates all tables, RLS policies, triggers, **and the `verifications` + `avatars` storage buckets with their policies**. No manual bucket setup needed.
+3. In **Authentication → Providers**, enable Email (password + magic link).
+4. (Optional) Configure your SMTP under **Authentication → Email Templates** for branded emails.
+
+> **Note on storage:** the script writes to `storage.buckets` and `storage.objects` policies, which requires running the SQL as the project owner via the Supabase SQL Editor (the default when you open it). The `verifications` bucket is **private** with a 25 MB limit (images + short videos); `avatars` is **public** with a 5 MB limit (images only). Files are stored under `${user_id}/…` paths and RLS prevents users from reading or writing to any folder but their own.
 
 ### 2. Wire the keys
 ```bash
@@ -56,11 +63,13 @@ Open `assets/js/config.js` and paste your project URL + anon key from **Settings
 
 ### 3. Run locally
 ```bash
-npx serve .
-# or
-python -m http.server 5173
+npm install            # install Tailwind CLI (one-time)
+npm run build          # build assets/css/styles.css
+npx serve .            # or: python -m http.server 5173
 ```
 ES modules need to load over HTTP, not `file://`.
+
+For active development, run `npm run watch` in a second terminal so Tailwind rebuilds on every file change.
 
 ### 4. Create your first admin
 After you sign up an account, mark it as admin in the Supabase SQL editor:
@@ -87,9 +96,25 @@ vercel
 
 ## Auth & roles
 
-- **restaurant** — signs up via `/auth.html` (or `/restaurants.html` redirect). Gets a row in `restaurants` keyed by `user_id`.
-- **rider (driver)** — signs up via `/riders.html` with their verification documents in one step. Gets a row in `riders` keyed by `user_id` with `verification_status='pending'`.
+- **restaurant** — signs up via `/auth.html`. The role is stored in `auth.users.raw_user_meta_data.role`.
+- **rider (driver)** — signs up via `/riders.html` in two steps: (1) create account → confirm email, (2) come back to upload ID/selfie/video and finalise zones + pricing.
 - **admin** — flag via `app_metadata.is_admin = true` on `auth.users`.
+
+### How the profile row is created
+
+When a new user signs up, the **`tg_handle_new_user` trigger on `auth.users`** (`SECURITY DEFINER`) reads `role`/`display_name`/`phone`/`whatsapp` from `raw_user_meta_data` and creates the matching row in `restaurants` or `riders`. This works **even when email confirmation is enabled** (the client is not yet authenticated at signup time, so an RLS-gated insert from the browser would fail). The client never directly writes the profile row — it only sets metadata via `supabase.auth.signUp`.
+
+A second trigger (`tg_sync_user_email`) keeps `restaurants.email` / `riders.email` in sync when a user changes their email in Supabase Auth.
+
+### Verification flow for drivers
+
+1. Rider signs up on `/riders.html` (or `/auth.html`).
+2. The DB trigger creates a `riders` row with `verification_status='pending'`.
+3. After confirming their email, the rider lands back on `/riders.html?confirmed=1`.
+4. The page detects the half-finished application (rider exists, no `rider_verifications` row yet) and shows the documents form.
+5. On submit: profile patch → file uploads to `verifications` bucket → `rider_verifications` row inserted.
+6. `/rider-dashboard.html` gates entry on `verification_status='verified'` and otherwise sends the user back to `/riders.html`.
+7. Admin reviews in `/admin.html`. Approval flips `riders.verification_status` to `verified`.
 
 Row-Level Security is enforced for everything: restaurants only see their own requests, drivers only see open requests in their own zones (plus their own assigned ones), notifications are recipient-scoped, etc. See `supabase/schema.sql`.
 
@@ -126,11 +151,17 @@ Restaurant can `Cancel` while status is `Available` or `Accepted`.
 ├── admin.html                  # Admin console (admin-only via app_metadata)
 ├── manifest.webmanifest        # PWA manifest
 ├── sw.js                       # Service worker (offline cache + web push)
-├── vercel.json
+├── vercel.json                 # Vercel build + cache + security headers
+├── package.json                # Tailwind CLI devDep + npm scripts
+├── tailwind.config.js          # Theme tokens + content paths
+├── src/
+│   └── input.css               # @tailwind directives + custom CSS layer
 ├── supabase/
 │   └── schema.sql              # Full DDL, RLS, triggers, realtime publication
 └── assets/
-    ├── css/styles.css
+    ├── favicon.svg             # Brand mark
+    ├── og-image.svg            # Social share card
+    ├── css/styles.css          # ← BUILT by `npm run build` — do not edit by hand
     └── js/
         ├── config.example.js   # → copy to config.js
         ├── config.js           # (gitignored) your real keys
@@ -202,11 +233,20 @@ Aligned 1:1 with the YUMYUMPO Discovery palette so the two products feel like on
 
 ---
 
+## Social sharing (OpenGraph)
+
+Each public page has OpenGraph + Twitter Card meta tags that point at `./assets/og-image.svg`. The Facebook and Twitter scrapers prefer **absolute** URLs — once you deploy to a real domain, the cleanest fix is to do a one-time find-and-replace on each public page:
+
+```
+./assets/og-image.svg  →  https://YOUR-DOMAIN.com/assets/og-image.svg
+```
+
+Same for `og:url` if you decide to add it. Relative paths work in WhatsApp and most modern scrapers, so this is optional for soft-launch but recommended once you start sharing publicly.
+
 ## Going live checklist
 
 - [ ] Supabase project created
-- [ ] `schema.sql` executed
-- [ ] Storage buckets `verifications` (private) and `avatars` (public) created + policies applied
+- [ ] `schema.sql` executed (this also creates the storage buckets + policies)
 - [ ] Email auth enabled, SMTP configured (or default Supabase email)
 - [ ] `assets/js/config.js` filled in and **not** committed
 - [ ] At least one admin user flagged via `app_metadata.is_admin`

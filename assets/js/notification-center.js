@@ -6,6 +6,7 @@ import {
   setRecipient, listNotifications, unreadCount, markRead, markAllRead,
   on, enableBrowserPush, KIND_META, timeAgo, pushNotification,
 } from "./notifications.js";
+import { esc, attr } from "./components.js";
 
 export function mountNotificationCenter(slot, recipient) {
   setRecipient(recipient);
@@ -93,13 +94,14 @@ export function mountNotificationCenter(slot, recipient) {
     list.innerHTML = view.map(n => {
       const meta = KIND_META[n.kind] || KIND_META.system;
       const unread = !n.read_at;
+      const toneClass = ["green","red","gray","yellow"].includes(meta.tone) ? meta.tone : "gray";
       return `
-        <button class="notif-item ${unread ? "unread" : ""}" data-id="${n.id}">
-          <span class="notif-icon tone-${meta.tone}">${meta.icon}</span>
+        <button class="notif-item ${unread ? "unread" : ""}" data-id="${attr(n.id)}" type="button">
+          <span class="notif-icon tone-${toneClass}">${esc(meta.icon)}</span>
           <span class="notif-body">
-            <span class="notif-title">${escape(n.title)}</span>
-            ${n.body ? `<span class="notif-sub">${escape(n.body)}</span>` : ""}
-            <span class="notif-time">${timeAgo(n.created_at)}</span>
+            <span class="notif-title">${esc(n.title)}</span>
+            ${n.body ? `<span class="notif-sub">${esc(n.body)}</span>` : ""}
+            <span class="notif-time">${esc(timeAgo(n.created_at))}</span>
           </span>
         </button>`;
     }).join("");
@@ -118,8 +120,6 @@ export function mountNotificationCenter(slot, recipient) {
 
   function pulse(el) { el.classList.remove("pulse"); void el.offsetWidth; el.classList.add("pulse"); }
 }
-
-function escape(s) { return String(s ?? "").replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
 
 function flashToast(msg) {
   let el = document.querySelector(".notif-toast");

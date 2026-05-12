@@ -4,21 +4,20 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Become a Driver · YUMYUMPO Dispatch</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<link rel="icon" type="image/svg+xml" href="./assets/favicon.svg"/>
+<link rel="apple-touch-icon" href="./assets/favicon.svg"/>
+<link rel="manifest" href="./manifest.webmanifest"/>
+<meta name="theme-color" content="#FFD000"/>
+<meta property="og:site_name" content="YUMYUMPO Dispatch"/>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="Become a YUMYUMPO Driver"/>
+<meta property="og:description" content="No fleets. No bosses. No predatory commissions. Get discovered by restaurants who already trust you."/>
+<meta property="og:image" content="./assets/og-image.svg"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="./assets/og-image.svg"/>
+<script src="./assets/js/config.js" onerror="window.__noConfig=true"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./assets/css/styles.css"/>
-<script src="./assets/js/config.js" onerror="window.__noConfig=true"></script>
-<script>
-  tailwind.config = { theme: { extend: {
-    colors: {
-      'brand-yellow':'#FFD000','yellow-dark':'#E6BB00','yellow-light':'#FFF9D6','yellow-pale':'#FFFDF0',
-      'brand-black':'#111111','black-soft':'#1E1E1E',
-      'gray-50':'#F9F9F9','gray-100':'#F3F3F3','gray-200':'#E8E8E8','gray-400':'#ABABAB','gray-600':'#6B6B6B',
-      cream:'#FFFFFF', warm:'#F9F9F9', beige:'#FFF9D6', charcoal:'#111111', ink:'#1E1E1E', ember:'#FFD000', dust:'#6B6B6B'
-    },
-    fontFamily: { display:['"Space Grotesk"','Inter','system-ui','sans-serif'], sans:['Inter','system-ui','sans-serif'] }
-  }}};
-</script>
 </head>
 <body class="bg-white text-brand-black font-sans">
 
@@ -30,10 +29,28 @@
     </a>
     <div class="flex items-center gap-3">
       <div id="sessionSlot"></div>
-      <a href="#apply" class="btn-primary !py-2 !px-4 text-sm">Apply</a>
+      <a href="#apply" class="hidden md:inline-flex btn-primary !py-2 !px-4 text-sm">Apply</a>
+      <button type="button" class="menu-trigger" data-drawer-target="#mobileNav" aria-label="Open menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
     </div>
   </div>
 </header>
+
+<aside id="mobileNav" class="drawer-panel" aria-label="Site menu">
+  <div class="drawer-head">
+    <div class="flex items-center gap-2"><span class="w-9 h-9 rounded-2xl bg-brand-yellow text-brand-black grid place-items-center font-display font-black">Y</span><span class="font-display font-bold">Dispatch</span></div>
+    <button type="button" class="drawer-close" data-drawer-close aria-label="Close menu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
+  </div>
+  <nav class="drawer-body">
+    <a href="./index.html" class="drawer-link">🏠 Home</a>
+    <a href="./marketplace.html" class="drawer-link">🛵 All drivers</a>
+    <a href="./restaurants.html" class="drawer-link">🏪 Restaurants</a>
+    <a href="./about.html" class="drawer-link">💛 About</a>
+    <a href="./auth.html" class="drawer-link">Sign in</a>
+    <a href="#apply" class="drawer-link cta" data-drawer-close>Apply now</a>
+  </nav>
+</aside>
 
 <section class="pt-32 pb-16 relative overflow-hidden">
   <div class="absolute inset-0 hero-gradient pointer-events-none"></div>
@@ -48,148 +65,302 @@
 </section>
 
 <section class="py-16 max-w-5xl mx-auto px-5 md:px-8 grid md:grid-cols-3 gap-4">
-  <div class="feature-card"><div class="feature-num">01</div><h3 class="font-display text-xl font-bold mt-6 mb-2">Build your profile</h3><p class="text-sm text-gray-600">Photo, vehicle, zones, and your own pricing.</p></div>
-  <div class="feature-card"><div class="feature-num">02</div><h3 class="font-display text-xl font-bold mt-6 mb-2">Get verified</h3><p class="text-sm text-gray-600">ID + selfie + phone. Usually reviewed within 24h.</p></div>
+  <div class="feature-card"><div class="feature-num">01</div><h3 class="font-display text-xl font-bold mt-6 mb-2">Create your account</h3><p class="text-sm text-gray-600">Sign up with email — we'll confirm it before anything else.</p></div>
+  <div class="feature-card"><div class="feature-num">02</div><h3 class="font-display text-xl font-bold mt-6 mb-2">Complete verification</h3><p class="text-sm text-gray-600">Add your zones, pricing, and upload ID + selfie.</p></div>
   <div class="feature-card"><div class="feature-num">03</div><h3 class="font-display text-xl font-bold mt-6 mb-2">Get discovered</h3><p class="text-sm text-gray-600">Restaurants find you directly when you're online.</p></div>
 </section>
 
 <section id="apply" class="py-20 bg-yellow-pale">
   <div class="max-w-2xl mx-auto px-5 md:px-8">
-    <span class="section-label text-center block">Apply</span>
-    <h2 class="section-title text-center text-4xl mt-2 mb-2">Create your driver profile</h2>
-    <p class="text-sm text-gray-600 text-center mb-10" id="applyHint">Already have an account? <a href="./auth.html" class="text-yellow-dark font-bold underline underline-offset-4">Sign in</a>.</p>
 
-    <form id="riderForm" class="bg-white rounded-3xl p-6 md:p-8 border border-gray-200 space-y-4 shadow-[0_30px_80px_-40px_rgba(17,17,17,0.2)]" novalidate>
-      <div id="acctRow">
-        <div class="text-xs uppercase tracking-widest font-bold text-yellow-dark mb-2">Account</div>
+    <!-- Page-level status banner -->
+    <div id="banner"></div>
+
+    <!-- STATE A: Sign up -->
+    <div id="signupCard" class="hidden">
+      <span class="section-label text-center block">Step 1 of 2 — Account</span>
+      <h2 class="section-title text-center text-4xl mt-2 mb-2">Create your driver account</h2>
+      <p class="text-sm text-gray-600 text-center mb-10">Already have an account? <a href="./auth.html" class="text-yellow-dark font-bold underline underline-offset-4">Sign in</a>.</p>
+
+      <form id="signupForm" class="bg-white rounded-3xl p-6 md:p-8 border border-gray-200 space-y-4 shadow-[0_30px_80px_-40px_rgba(17,17,17,0.2)]" novalidate>
+        <div class="grid sm:grid-cols-2 gap-3">
+          <div><label class="text-xs font-bold text-gray-600">Full name</label><input class="field mt-1" name="name" required placeholder="Mark Villanueva" autocomplete="name"/></div>
+          <div><label class="text-xs font-bold text-gray-600">Phone</label><input class="field mt-1" name="phone" required placeholder="+639XXXXXXXXX" autocomplete="tel"/></div>
+        </div>
         <div class="grid sm:grid-cols-2 gap-3">
           <div><label class="text-xs font-bold text-gray-600">Email</label><input class="field mt-1" type="email" name="email" required placeholder="you@example.com" autocomplete="email"/></div>
-          <div><label class="text-xs font-bold text-gray-600">Password</label><input class="field mt-1" type="password" name="password" required minlength="8" placeholder="At least 8 characters"/></div>
+          <div><label class="text-xs font-bold text-gray-600">WhatsApp</label><input class="field mt-1" name="whatsapp" required placeholder="639XXXXXXXXX"/></div>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-600">Password</label>
+          <input class="field mt-1" type="password" name="password" required minlength="8" placeholder="At least 8 characters" autocomplete="new-password"/>
+        </div>
+
+        <div id="signupError" class="text-sm text-red-600 font-semibold hidden"></div>
+        <button class="btn-primary w-full !py-4 mt-4" id="signupSubmit">Create account & continue →</button>
+        <p class="text-xs text-gray-600 text-center leading-relaxed">After you confirm your email, you'll come back here to upload your ID and finish verification.</p>
+      </form>
+    </div>
+
+    <!-- STATE B: Complete verification -->
+    <div id="verifyCard" class="hidden">
+      <span class="section-label text-center block">Step 2 of 2 — Verification</span>
+      <h2 class="section-title text-center text-4xl mt-2 mb-2">Finish your driver profile</h2>
+      <p class="text-sm text-gray-600 text-center mb-10" id="verifyHint">Add your delivery zones, pricing, and verification documents.</p>
+
+      <form id="verifyForm" class="bg-white rounded-3xl p-6 md:p-8 border border-gray-200 space-y-4 shadow-[0_30px_80px_-40px_rgba(17,17,17,0.2)]" novalidate>
+        <div class="grid sm:grid-cols-2 gap-3">
+          <div><label class="text-xs font-bold text-gray-600">Full name</label><input class="field mt-1" name="name" required/></div>
+          <div><label class="text-xs font-bold text-gray-600">Vehicle</label>
+            <select class="field mt-1" name="vehicle"><option>motorcycle</option><option>bicycle</option><option>scooter</option><option>car</option><option>walking</option></select>
+          </div>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-3">
+          <div><label class="text-xs font-bold text-gray-600">Phone</label><input class="field mt-1" name="phone" required placeholder="+639XXXXXXXXX"/></div>
+          <div><label class="text-xs font-bold text-gray-600">WhatsApp</label><input class="field mt-1" name="whatsapp" required/></div>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-600">Delivery zones</label>
+          <div id="zoneChips" class="flex flex-wrap gap-2 mt-2"></div>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-3">
+          <div><label class="text-xs font-bold text-gray-600">Base fee (₱)</label><input class="field mt-1" type="number" name="base_fee" required value="60"/></div>
+          <div><label class="text-xs font-bold text-gray-600">Per km (₱)</label><input class="field mt-1" type="number" name="per_km_fee" value="12"/></div>
+        </div>
+
+        <div class="pt-4 border-t border-gray-200">
+          <div class="text-xs uppercase tracking-widest font-bold text-yellow-dark mb-3">Verification documents</div>
+          <div class="grid sm:grid-cols-3 gap-3">
+            <label class="upload"><span>Government ID</span><input type="file" name="gov_id" accept="image/*" required/></label>
+            <label class="upload"><span>Selfie</span><input type="file" name="selfie" accept="image/*" required/></label>
+            <label class="upload"><span>Video intro (optional)</span><input type="file" name="video" accept="video/*"/></label>
+          </div>
+          <p class="text-xs text-gray-600 mt-3 leading-relaxed">Documents go into a private storage bucket and are only seen by our verification team. Usually reviewed within 24 hours.</p>
+        </div>
+
+        <div id="verifyError" class="text-sm text-red-600 font-semibold hidden"></div>
+        <button type="submit" class="btn-primary w-full !py-4 mt-4" id="verifySubmit">Submit for verification</button>
+      </form>
+    </div>
+
+    <!-- STATE C: Already submitted -->
+    <div id="submittedCard" class="hidden">
+      <div class="bg-white rounded-3xl p-8 border border-gray-200 text-center">
+        <div class="brand-badge mx-auto">⏳ Under review</div>
+        <h2 class="font-display text-3xl font-black mt-6">Verification submitted</h2>
+        <p class="text-sm text-gray-600 mt-3 max-w-md mx-auto">We're reviewing your documents — usually within 24 hours. We'll email you the moment you're approved.</p>
+        <div class="mt-8 flex flex-wrap justify-center gap-3">
+          <a href="./rider-dashboard.html" class="btn-primary">Go to driver dashboard</a>
+          <a href="./index.html" class="btn-ghost">Back to home</a>
         </div>
       </div>
+    </div>
 
-      <div class="text-xs uppercase tracking-widest font-bold text-yellow-dark mb-2 pt-2">Driver details</div>
-      <div class="grid sm:grid-cols-2 gap-3">
-        <div><label class="text-xs font-bold text-gray-600">Full name</label><input class="field mt-1" name="name" required placeholder="Mark Villanueva" autocomplete="name"/></div>
-        <div><label class="text-xs font-bold text-gray-600">Phone</label><input class="field mt-1" name="phone" required placeholder="+639XXXXXXXXX" autocomplete="tel"/></div>
+    <!-- STATE D: Verified -->
+    <div id="verifiedCard" class="hidden">
+      <div class="bg-white rounded-3xl p-8 border border-gray-200 text-center">
+        <div class="brand-badge mx-auto">✓ Verified Driver</div>
+        <h2 class="font-display text-3xl font-black mt-6">You're all set</h2>
+        <p class="text-sm text-gray-600 mt-3 max-w-md mx-auto">Restaurants can find you. Head to your dashboard to set yourself online.</p>
+        <div class="mt-8"><a href="./rider-dashboard.html" class="btn-primary">Open dashboard →</a></div>
       </div>
-      <div class="grid sm:grid-cols-2 gap-3">
-        <div><label class="text-xs font-bold text-gray-600">WhatsApp</label><input class="field mt-1" name="whatsapp" required placeholder="639XXXXXXXXX"/></div>
-        <div><label class="text-xs font-bold text-gray-600">Vehicle</label>
-          <select class="field mt-1" name="vehicle"><option>motorcycle</option><option>bicycle</option><option>scooter</option><option>car</option><option>walking</option></select>
+    </div>
+
+    <!-- STATE E: Verification rejected — give them a path to retry. -->
+    <div id="rejectedCard" class="hidden">
+      <div class="bg-white rounded-3xl p-8 border-2 border-red-200 text-center">
+        <div class="inline-flex items-center gap-2 bg-red-100 text-red-700 text-xs font-black px-4 py-2 rounded-full uppercase tracking-widest">✖ Verification needs another look</div>
+        <h2 class="font-display text-3xl font-black mt-6">Let's try that again</h2>
+        <p class="text-sm text-gray-600 mt-3 max-w-md mx-auto">Your last submission couldn't be approved. Please re-check that your documents are clear, your selfie matches your ID, and your phone number is reachable on WhatsApp, then resubmit below.</p>
+        <div class="mt-6"><button id="reapplyBtn" type="button" class="btn-primary">Re-submit verification</button></div>
+      </div>
+    </div>
+
+    <!-- STATE F: Account suspended — no path to driver dashboard, surface support. -->
+    <div id="suspendedCard" class="hidden">
+      <div class="bg-white rounded-3xl p-8 border-2 border-red-200 text-center">
+        <div class="inline-flex items-center gap-2 bg-red-100 text-red-700 text-xs font-black px-4 py-2 rounded-full uppercase tracking-widest">⚠ Account suspended</div>
+        <h2 class="font-display text-3xl font-black mt-6">Your driver account is paused</h2>
+        <p class="text-sm text-gray-600 mt-3 max-w-md mx-auto">Restaurants can't reach you while your account is suspended. If you believe this is a mistake, please contact our team and we'll review your case.</p>
+        <div class="mt-8 flex flex-wrap gap-3 justify-center">
+          <a href="mailto:support@yumyumpo.ph?subject=Suspension%20appeal" class="btn-primary">Email support</a>
+          <a href="./index.html" class="btn-ghost">Back to home</a>
         </div>
       </div>
-      <div>
-        <label class="text-xs font-bold text-gray-600">Delivery zones</label>
-        <div id="zoneChips" class="flex flex-wrap gap-2 mt-2"></div>
-      </div>
-      <div class="grid sm:grid-cols-2 gap-3">
-        <div><label class="text-xs font-bold text-gray-600">Base fee (₱)</label><input class="field mt-1" type="number" name="base_fee" required value="60"/></div>
-        <div><label class="text-xs font-bold text-gray-600">Per km (₱)</label><input class="field mt-1" type="number" name="per_km_fee" value="12"/></div>
-      </div>
+    </div>
 
-      <div class="pt-4 border-t border-gray-200">
-        <div class="text-xs uppercase tracking-widest font-bold text-yellow-dark mb-3">Verification documents</div>
-        <div class="grid sm:grid-cols-3 gap-3">
-          <label class="upload"><span>Government ID</span><input type="file" name="gov_id" accept="image/*" required/></label>
-          <label class="upload"><span>Selfie</span><input type="file" name="selfie" accept="image/*" required/></label>
-          <label class="upload"><span>Video intro (optional)</span><input type="file" name="video" accept="video/*"/></label>
-        </div>
-        <p class="text-xs text-gray-600 mt-3 leading-relaxed">Documents are uploaded to a private storage bucket and only seen by our verification team. Usually reviewed within 24 hours.</p>
-      </div>
-
-      <div id="formError" class="text-sm text-red-600 font-semibold hidden"></div>
-      <div id="formInfo"  class="text-sm text-yellow-dark font-semibold hidden"></div>
-
-      <button type="submit" class="btn-primary w-full !py-4 mt-4" id="submitBtn">Submit application</button>
-    </form>
   </div>
 </section>
 
 <footer class="border-t border-gray-200 py-8 text-center text-xs text-gray-400">© 2026 YUMYUMPO Dispatch</footer>
+<script type="module" src="./assets/js/main.js"></script>
 
 <script type="module">
 import { isConfigured, signUp, getSession, getCurrentProfile } from "./assets/js/auth.js";
 import { renderSessionBadge } from "./assets/js/session-ui.js";
-import { getZones, updateRiderProfile, uploadVerificationFile, submitVerification, enums } from "./assets/js/api.js";
+import { getZones, updateRiderProfile, uploadVerificationFile, submitVerification } from "./assets/js/api.js";
+import { supabase, HAS_SUPABASE } from "./assets/js/supabase.js";
 
 renderSessionBadge(document.getElementById("sessionSlot"));
 
-// Zone picker
-const zones = await getZones();
-const wrap = document.getElementById("zoneChips");
-const chosen = new Set();
-zones.forEach(z => {
-  const b = document.createElement("button");
-  b.type="button"; b.className="zone-chip"; b.textContent=z;
-  b.addEventListener("click", () => { b.classList.toggle("on"); chosen.has(z)?chosen.delete(z):chosen.add(z); });
-  wrap.appendChild(b);
-});
+const banner = document.getElementById("banner");
+function showBanner(html, tone = "info") {
+  const colors = {
+    info:    "bg-yellow-light border-yellow-dark text-brand-black",
+    success: "bg-green-50 border-green-300 text-green-900",
+    error:   "bg-red-50 border-red-300 text-red-700",
+  };
+  banner.innerHTML = `<div class="rounded-2xl border-2 p-4 mb-6 text-sm font-semibold ${colors[tone]}">${html}</div>`;
+}
 
-// If signed in already as a rider, hide the email/password row.
-const acctRow = document.getElementById("acctRow");
-const hint = document.getElementById("applyHint");
+const params = new URLSearchParams(location.search);
+if (!isConfigured()) {
+  showBanner("⚠ Supabase isn't configured yet. See <code>README.md</code> for setup.", "error");
+}
+
+const signupCard    = document.getElementById("signupCard");
+const verifyCard    = document.getElementById("verifyCard");
+const submittedCard = document.getElementById("submittedCard");
+const verifiedCard  = document.getElementById("verifiedCard");
+const rejectedCard  = document.getElementById("rejectedCard");
+const suspendedCard = document.getElementById("suspendedCard");
+
+// ---- Decide which state to show -----------------------------------------
 const session = isConfigured() ? await getSession() : null;
-let existingProfile = null;
+let riderProfile = null;
+let existingVerification = null;
+
 if (session) {
-  existingProfile = await getCurrentProfile();
-  if (existingProfile?.role === "rider") {
-    acctRow.classList.add("hidden");
-    document.querySelector("input[name=email]").required = false;
-    document.querySelector("input[name=password]").required = false;
-    hint.innerHTML = `Signed in as <b>${existingProfile.profile.name}</b>. Submitting will update your profile and resubmit your verification.`;
-    // Prefill known values
-    const r = existingProfile.profile;
-    document.querySelector("input[name=name]").value = r.name || "";
-    document.querySelector("input[name=phone]").value = r.phone || "";
-    document.querySelector("input[name=whatsapp]").value = r.whatsapp || "";
-    (r.delivery_zones || []).forEach(z => {
-      const btn = [...wrap.children].find(b => b.textContent === z);
-      if (btn) { btn.classList.add("on"); chosen.add(z); }
-    });
+  const me = await getCurrentProfile();
+  if (me && me.role !== "rider") {
+    // Signed in as a different role — bounce.
+    showBanner("This account is registered as a restaurant. <a href='./restaurants.html' class='underline font-bold'>Open your restaurant dashboard</a>.", "info");
+  } else {
+    riderProfile = me?.profile || null;
+    if (riderProfile) {
+      const { data } = await supabase.from("rider_verifications")
+        .select("id,status,created_at").eq("rider_id", riderProfile.id)
+        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+      existingVerification = data || null;
+    }
   }
 }
 
-const err = document.getElementById("formError");
-const info = document.getElementById("formInfo");
-function showErr(m){ err.textContent=m; err.classList.remove("hidden"); info.classList.add("hidden"); }
-function showInfo(m){ info.textContent=m; info.classList.remove("hidden"); err.classList.add("hidden"); }
+// Resolve the visible state. Driver verification_status drives most of this;
+// rider_verifications.status is consulted only to distinguish "submitted, awaiting
+// review" from "we haven't seen any submission yet".
+const vs = riderProfile?.verification_status;
 
-document.getElementById("riderForm").addEventListener("submit", async (e) => {
+if (!session) {
+  signupCard.classList.remove("hidden");
+} else if (vs === "suspended") {
+  suspendedCard.classList.remove("hidden");
+} else if (vs === "verified") {
+  verifiedCard.classList.remove("hidden");
+} else if (vs === "rejected") {
+  rejectedCard.classList.remove("hidden");
+} else if (existingVerification && existingVerification.status === "pending") {
+  submittedCard.classList.remove("hidden");
+} else if (riderProfile) {
+  if (params.get("confirmed") === "1") {
+    showBanner("✓ Email confirmed. Let's finish setting up your driver profile.", "success");
+  } else if (params.get("missing") === "1") {
+    showBanner("Please complete your driver verification below to start receiving requests.", "info");
+  }
+  verifyCard.classList.remove("hidden");
+  await prefillVerifyForm();
+} else {
+  // Signed in but no rider row — likely the trigger hasn't fired or the user
+  // signed up as a restaurant by mistake. Surface this clearly.
+  showBanner("We couldn't find your driver profile. Please <a href='./auth.html' class='underline font-bold'>sign out</a> and try again, or contact support.", "error");
+}
+
+// Rejected drivers can open the verify form to resubmit.
+document.getElementById("reapplyBtn")?.addEventListener("click", async () => {
+  rejectedCard.classList.add("hidden");
+  verifyCard.classList.remove("hidden");
+  await prefillVerifyForm();
+  document.getElementById("verifyForm").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+// ---- STATE A: signup ----------------------------------------------------
+const signupForm   = document.getElementById("signupForm");
+const signupError  = document.getElementById("signupError");
+const signupSubmit = document.getElementById("signupSubmit");
+
+signupForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  err.classList.add("hidden"); info.classList.add("hidden");
-  const submit = document.getElementById("submitBtn");
-  const orig = submit.textContent; submit.disabled = true; submit.textContent = "Submitting…";
-
+  signupError.classList.add("hidden");
+  if (!isConfigured()) { signupError.textContent = "Supabase isn't configured."; signupError.classList.remove("hidden"); return; }
   const f = new FormData(e.target);
+  const orig = signupSubmit.textContent; signupSubmit.disabled = true; signupSubmit.textContent = "Creating account…";
   try {
-    if (!isConfigured()) throw new Error("Supabase isn't configured yet. See README.");
+    const res = await signUp({
+      email: f.get("email"), password: f.get("password"),
+      role: "rider",
+      displayName: f.get("name"),
+      phone: f.get("phone"),
+      whatsapp: f.get("whatsapp"),
+    });
+    if (!res.session) {
+      // Email confirmation required — DB trigger has already created the rider row.
+      signupCard.classList.add("hidden");
+      showBanner("✓ Account created. Check your email and click the confirmation link, then return here to finish verification.", "success");
+    } else {
+      // Auto-confirmed — refresh into the verify state.
+      location.href = "./riders.html?confirmed=1";
+    }
+  } catch (ex) {
+    signupError.textContent = ex.message || String(ex);
+    signupError.classList.remove("hidden");
+    signupSubmit.disabled = false; signupSubmit.textContent = orig;
+  }
+});
+
+// ---- STATE B: verification ---------------------------------------------
+async function prefillVerifyForm() {
+  const zones = await getZones();
+  const wrap = document.getElementById("zoneChips");
+  const chosen = new Set(riderProfile.delivery_zones || []);
+  zones.forEach(z => {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = z;
+    b.className = "zone-chip" + (chosen.has(z) ? " on" : "");
+    b.addEventListener("click", () => { b.classList.toggle("on"); chosen.has(z) ? chosen.delete(z) : chosen.add(z); });
+    wrap.appendChild(b);
+  });
+
+  verifyForm.querySelector("[name=name]").value     = riderProfile.name || "";
+  verifyForm.querySelector("[name=phone]").value    = riderProfile.phone || "";
+  verifyForm.querySelector("[name=whatsapp]").value = riderProfile.whatsapp || "";
+  verifyForm.querySelector("[name=vehicle]").value  = riderProfile.vehicle_type || "motorcycle";
+  if (riderProfile.base_fee)   verifyForm.querySelector("[name=base_fee]").value   = riderProfile.base_fee;
+  if (riderProfile.per_km_fee) verifyForm.querySelector("[name=per_km_fee]").value = riderProfile.per_km_fee;
+
+  verifyForm.__chosen = chosen;
+}
+
+const verifyForm   = document.getElementById("verifyForm");
+const verifyError  = document.getElementById("verifyError");
+const verifySubmit = document.getElementById("verifySubmit");
+
+verifyForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  verifyError.classList.add("hidden");
+  const orig = verifySubmit.textContent;
+
+  try {
+    const chosen = verifyForm.__chosen || new Set();
     if (!chosen.size) throw new Error("Pick at least one delivery zone.");
 
-    // 1) Ensure account
-    let riderRow = existingProfile?.profile;
-    let userId = (await getSession())?.user?.id;
-    if (!riderRow) {
-      const res = await signUp({
-        email: f.get("email"), password: f.get("password"),
-        role: "rider", displayName: f.get("name"),
-        phone: f.get("phone"), whatsapp: f.get("whatsapp"),
-      });
-      userId = res.user?.id;
-      if (!res.session) {
-        showInfo("Account created. Check your email to confirm, then sign in to finish verification.");
-        submit.disabled = false; submit.textContent = orig;
-        return;
-      }
-      // After confirmation auto-signin, look up profile.
-      const me = await getCurrentProfile();
-      riderRow = me?.profile;
-    }
-    if (!riderRow) throw new Error("Couldn't locate your driver profile. Please refresh and try again.");
+    const f = new FormData(e.target);
+    const idFile     = f.get("gov_id");
+    const selfieFile = f.get("selfie");
+    const videoFile  = f.get("video");
+    if (!idFile?.size || !selfieFile?.size) throw new Error("Government ID and selfie are required.");
 
-    // 2) Update profile details
-    submit.textContent = "Saving profile…";
-    await updateRiderProfile(riderRow.id, {
+    verifySubmit.disabled = true; verifySubmit.textContent = "Saving profile…";
+    await updateRiderProfile(riderProfile.id, {
       name: f.get("name"),
       phone: f.get("phone"),
       whatsapp: f.get("whatsapp"),
@@ -199,27 +370,25 @@ document.getElementById("riderForm").addEventListener("submit", async (e) => {
       per_km_fee: Number(f.get("per_km_fee")),
     });
 
-    // 3) Upload verification files
-    submit.textContent = "Uploading documents…";
-    const idFile     = f.get("gov_id");
-    const selfieFile = f.get("selfie");
-    const videoFile  = f.get("video");
+    verifySubmit.textContent = "Uploading documents…";
+    const userId = session.user.id;
     const [id_url, selfie_url, video_url] = await Promise.all([
-      idFile?.size  ? uploadVerificationFile(userId, idFile, "gov_id")     : null,
-      selfieFile?.size ? uploadVerificationFile(userId, selfieFile, "selfie") : null,
-      videoFile?.size  ? uploadVerificationFile(userId, videoFile, "video")  : null,
+      uploadVerificationFile(userId, idFile,     "gov_id"),
+      uploadVerificationFile(userId, selfieFile, "selfie"),
+      videoFile?.size ? uploadVerificationFile(userId, videoFile, "video") : Promise.resolve(null),
     ]);
 
-    // 4) Create verification record
-    submit.textContent = "Submitting…";
-    await submitVerification({ rider_id: riderRow.id, id_url, selfie_url, video_url });
+    verifySubmit.textContent = "Submitting…";
+    await submitVerification({ rider_id: riderProfile.id, id_url, selfie_url, video_url });
 
-    showInfo("Application received. We'll review within 24 hours and email you when you're verified.");
-    submit.disabled = true; submit.textContent = "Submitted ✓";
-    setTimeout(() => location.href = "./rider-dashboard.html", 2500);
+    verifyCard.classList.add("hidden");
+    submittedCard.classList.remove("hidden");
+    showBanner("✓ Verification submitted — we'll email you when you're approved.", "success");
+    window.scrollTo({ top: document.getElementById("apply").offsetTop - 80, behavior: "smooth" });
   } catch (ex) {
-    showErr(ex.message || String(ex));
-    submit.disabled = false; submit.textContent = orig;
+    verifyError.textContent = ex.message || String(ex);
+    verifyError.classList.remove("hidden");
+    verifySubmit.disabled = false; verifySubmit.textContent = orig;
   }
 });
 </script>

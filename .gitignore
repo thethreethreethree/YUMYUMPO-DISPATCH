@@ -3,5 +3,6 @@
 .env
 .env.local
 node_modules
+package-lock.json
 # Local Supabase keys — never commit
 assets/js/config.js
