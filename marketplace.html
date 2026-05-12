@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Rider Marketplace · YUMYUMPO Dispatch</title>
+<title>Driver Marketplace · YUMYUMPO Dispatch</title>
+<link rel="manifest" href="./manifest.webmanifest"/>
+<meta name="theme-color" content="#FFD000"/>
+<script src="./assets/js/config.js" onerror="window.__noConfig=true"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./assets/css/styles.css"/>
@@ -68,35 +71,49 @@
 <footer class="border-t border-charcoal/10 py-8 text-center text-xs text-charcoal/40">© 2026 YUMYUMPO Dispatch</footer>
 
 <script type="module">
-import { fetchRiders, togglePreferred, getPreferred, enums } from "./assets/js/api.js";
+import { fetchRiders, togglePreferred, fetchPreferredRiderIds, getZones, enums, getRestaurantByUser } from "./assets/js/api.js";
+import { getUser } from "./assets/js/auth.js";
+import { renderSessionBadge } from "./assets/js/session-ui.js";
 import { riderCard, emptyState, toast } from "./assets/js/components.js";
 
+const sessionSlot = document.querySelector("a[href='./auth.html']")?.parentElement?.appendChild(document.createElement("div"));
+if (sessionSlot) renderSessionBadge(sessionSlot);
+
+let viewerRestaurantId = null;
+try { const u = await getUser(); if (u) { const rs = await getRestaurantByUser(u.id); viewerRestaurantId = rs?.id || null; } } catch {}
+
 const zoneSel = document.getElementById("filterZone");
-enums.ZONES.forEach(z => zoneSel.insertAdjacentHTML("beforeend", `<option>${z}</option>`));
+(await getZones()).forEach(z => zoneSel.insertAdjacentHTML("beforeend", `<option>${z}</option>`));
 const vehSel = document.getElementById("filterVehicle");
 enums.VEHICLES.forEach(v => vehSel.insertAdjacentHTML("beforeend", `<option value="${v}">${v}</option>`));
 
 async function render() {
-  const data = await fetchRiders({
-    zone: zoneSel.value || undefined,
-    vehicle: vehSel.value || undefined,
-    status: document.getElementById("filterStatus").value || undefined,
-    verifiedOnly: document.getElementById("filterVerified").checked,
-  });
-  const pref = getPreferred();
-  document.getElementById("resultCount").textContent = `${data.length} rider${data.length===1?"":"s"}`;
   const grid = document.getElementById("grid");
-  grid.innerHTML = data.length
-    ? data.map(r => `<a href="./rider.html?id=${r.id}" class="block">${riderCard(r, { preferred: pref.includes(r.id) })}</a>`).join("")
-    : emptyState("No riders match", "Try widening your filters.");
-  document.querySelectorAll(".fav-btn").forEach(b => {
-    b.addEventListener("click", async (e) => {
-      e.preventDefault(); e.stopPropagation();
-      const list = await togglePreferred(null, b.dataset.rider);
-      toast(list.includes(b.dataset.rider) ? "Saved" : "Removed");
-      render();
+  grid.innerHTML = `<div class="text-sm text-gray-600 col-span-full">Loading drivers…</div>`;
+  try {
+    const data = await fetchRiders({
+      zone: zoneSel.value || undefined,
+      vehicle: vehSel.value || undefined,
+      status: document.getElementById("filterStatus").value || undefined,
+      verifiedOnly: document.getElementById("filterVerified").checked,
     });
-  });
+    const pref = viewerRestaurantId ? await fetchPreferredRiderIds(viewerRestaurantId) : [];
+    document.getElementById("resultCount").textContent = `${data.length} driver${data.length===1?"":"s"}`;
+    grid.innerHTML = data.length
+      ? data.map(r => `<a href="./rider.html?id=${r.id}" class="block">${riderCard(r, { preferred: pref.includes(r.id) })}</a>`).join("")
+      : emptyState("No drivers match", "Try widening your filters.");
+    document.querySelectorAll(".fav-btn").forEach(b => {
+      b.addEventListener("click", async (e) => {
+        e.preventDefault(); e.stopPropagation();
+        if (!viewerRestaurantId) { toast("Sign in as a restaurant to save preferred drivers"); return; }
+        try {
+          const list = await togglePreferred(viewerRestaurantId, b.dataset.rider);
+          toast(list.includes(b.dataset.rider) ? "Saved" : "Removed");
+          render();
+        } catch (e) { toast(e.message); }
+      });
+    });
+  } catch (e) { grid.innerHTML = emptyState("Couldn't load drivers", e.message); }
 }
 ["filterZone","filterVehicle","filterStatus","filterVerified"].forEach(id =>
   document.getElementById(id).addEventListener("change", render));

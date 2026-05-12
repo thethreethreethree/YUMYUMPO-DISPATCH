@@ -3,10 +3,11 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>For Riders · YUMYUMPO Dispatch</title>
+<title>Become a Driver · YUMYUMPO Dispatch</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./assets/css/styles.css"/>
+<script src="./assets/js/config.js" onerror="window.__noConfig=true"></script>
 <script>
   tailwind.config = { theme: { extend: {
     colors: {
@@ -19,111 +20,207 @@
   }}};
 </script>
 </head>
-<body class="bg-cream text-charcoal font-sans">
+<body class="bg-white text-brand-black font-sans">
 
-<header class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-cream/70 border-b border-charcoal/5">
-  <div class="max-w-7xl mx-auto px-5 md:px-8 h-16 flex items-center justify-between">
+<header class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-white/85 border-b border-gray-200">
+  <div class="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
     <a href="./index.html" class="flex items-center gap-2">
-      <span class="w-8 h-8 rounded-full bg-charcoal text-cream grid place-items-center font-display text-sm">Y</span>
-      <span class="font-display text-lg">YUMYUMPO <span class="text-ember">Dispatch</span></span>
+      <span class="w-9 h-9 rounded-2xl bg-brand-yellow text-brand-black grid place-items-center font-display font-black">Y</span>
+      <span class="font-display font-bold text-lg">YUMYUMPO <span class="text-yellow-dark">Dispatch</span></span>
     </a>
-    <a href="#apply" class="btn-primary !py-2 !px-4 text-sm">Apply to ride</a>
+    <div class="flex items-center gap-3">
+      <div id="sessionSlot"></div>
+      <a href="#apply" class="btn-primary !py-2 !px-4 text-sm">Apply</a>
+    </div>
   </div>
 </header>
 
 <section class="pt-32 pb-16 relative overflow-hidden">
   <div class="absolute inset-0 hero-gradient pointer-events-none"></div>
   <div class="relative max-w-5xl mx-auto px-5 md:px-8 text-center">
-    <div class="text-xs uppercase tracking-[0.18em] text-ember mb-4">Independent riders</div>
-    <h1 class="font-display text-5xl md:text-7xl tracking-tight leading-[1.0]">
-      You set the route.<br/><span class="italic text-ember">We open the door.</span>
+    <span class="brand-badge">🛵 Independent Drivers</span>
+    <h1 class="font-display text-5xl md:text-7xl font-black tracking-tight leading-[1.0] mt-8">
+      You set the route.<br/><span class="text-yellow-dark italic">We open the door.</span>
     </h1>
-    <p class="mt-6 max-w-xl mx-auto text-charcoal/70">No fleets. No bosses. No predatory commissions. Earn directly from restaurants that already trust you.</p>
-    <a href="#apply" class="btn-primary mt-10">Start verification</a>
+    <p class="mt-6 max-w-xl mx-auto text-gray-600 text-lg">No fleets. No bosses. No predatory commissions. Get discovered by restaurants who already trust you.</p>
+    <a href="#apply" class="btn-primary mt-10">Start verification →</a>
   </div>
 </section>
 
 <section class="py-16 max-w-5xl mx-auto px-5 md:px-8 grid md:grid-cols-3 gap-4">
-  <div class="step-card"><div class="step-num">01</div><h3 class="font-display text-xl mt-6 mb-2">Build your profile</h3><p class="text-sm text-charcoal/60">Photo, vehicle, zones, and your own pricing.</p></div>
-  <div class="step-card"><div class="step-num">02</div><h3 class="font-display text-xl mt-6 mb-2">Get verified</h3><p class="text-sm text-charcoal/60">ID + selfie + phone + community video review.</p></div>
-  <div class="step-card"><div class="step-num">03</div><h3 class="font-display text-xl mt-6 mb-2">Get discovered</h3><p class="text-sm text-charcoal/60">Restaurants reach you directly when you're online.</p></div>
+  <div class="feature-card"><div class="feature-num">01</div><h3 class="font-display text-xl font-bold mt-6 mb-2">Build your profile</h3><p class="text-sm text-gray-600">Photo, vehicle, zones, and your own pricing.</p></div>
+  <div class="feature-card"><div class="feature-num">02</div><h3 class="font-display text-xl font-bold mt-6 mb-2">Get verified</h3><p class="text-sm text-gray-600">ID + selfie + phone. Usually reviewed within 24h.</p></div>
+  <div class="feature-card"><div class="feature-num">03</div><h3 class="font-display text-xl font-bold mt-6 mb-2">Get discovered</h3><p class="text-sm text-gray-600">Restaurants find you directly when you're online.</p></div>
 </section>
 
-<section id="apply" class="py-20 bg-warm">
+<section id="apply" class="py-20 bg-yellow-pale">
   <div class="max-w-2xl mx-auto px-5 md:px-8">
-    <div class="text-xs uppercase tracking-widest text-ember mb-3 text-center">Step 1 — Apply</div>
-    <h2 class="font-display text-4xl text-center tracking-tight mb-10">Create your rider profile</h2>
+    <span class="section-label text-center block">Apply</span>
+    <h2 class="section-title text-center text-4xl mt-2 mb-2">Create your driver profile</h2>
+    <p class="text-sm text-gray-600 text-center mb-10" id="applyHint">Already have an account? <a href="./auth.html" class="text-yellow-dark font-bold underline underline-offset-4">Sign in</a>.</p>
 
-    <form id="riderForm" class="bg-cream rounded-3xl p-6 md:p-8 border border-charcoal/5 space-y-4">
+    <form id="riderForm" class="bg-white rounded-3xl p-6 md:p-8 border border-gray-200 space-y-4 shadow-[0_30px_80px_-40px_rgba(17,17,17,0.2)]" novalidate>
+      <div id="acctRow">
+        <div class="text-xs uppercase tracking-widest font-bold text-yellow-dark mb-2">Account</div>
+        <div class="grid sm:grid-cols-2 gap-3">
+          <div><label class="text-xs font-bold text-gray-600">Email</label><input class="field mt-1" type="email" name="email" required placeholder="you@example.com" autocomplete="email"/></div>
+          <div><label class="text-xs font-bold text-gray-600">Password</label><input class="field mt-1" type="password" name="password" required minlength="8" placeholder="At least 8 characters"/></div>
+        </div>
+      </div>
+
+      <div class="text-xs uppercase tracking-widest font-bold text-yellow-dark mb-2 pt-2">Driver details</div>
       <div class="grid sm:grid-cols-2 gap-3">
-        <div><label class="text-xs text-charcoal/60">Full name</label><input class="field mt-1" name="name" required placeholder="Mark Villanueva"/></div>
-        <div><label class="text-xs text-charcoal/60">Phone</label><input class="field mt-1" name="phone" required placeholder="+639XXXXXXXXX"/></div>
+        <div><label class="text-xs font-bold text-gray-600">Full name</label><input class="field mt-1" name="name" required placeholder="Mark Villanueva" autocomplete="name"/></div>
+        <div><label class="text-xs font-bold text-gray-600">Phone</label><input class="field mt-1" name="phone" required placeholder="+639XXXXXXXXX" autocomplete="tel"/></div>
       </div>
       <div class="grid sm:grid-cols-2 gap-3">
-        <div><label class="text-xs text-charcoal/60">WhatsApp number</label><input class="field mt-1" name="whatsapp" required placeholder="639XXXXXXXXX"/></div>
-        <div><label class="text-xs text-charcoal/60">Vehicle type</label>
+        <div><label class="text-xs font-bold text-gray-600">WhatsApp</label><input class="field mt-1" name="whatsapp" required placeholder="639XXXXXXXXX"/></div>
+        <div><label class="text-xs font-bold text-gray-600">Vehicle</label>
           <select class="field mt-1" name="vehicle"><option>motorcycle</option><option>bicycle</option><option>scooter</option><option>car</option><option>walking</option></select>
         </div>
       </div>
       <div>
-        <label class="text-xs text-charcoal/60">Delivery zones (pick all that apply)</label>
+        <label class="text-xs font-bold text-gray-600">Delivery zones</label>
         <div id="zoneChips" class="flex flex-wrap gap-2 mt-2"></div>
       </div>
       <div class="grid sm:grid-cols-2 gap-3">
-        <div><label class="text-xs text-charcoal/60">Base fee (₱)</label><input class="field mt-1" type="number" name="base_fee" required value="60"/></div>
-        <div><label class="text-xs text-charcoal/60">Per kilometer (₱)</label><input class="field mt-1" type="number" name="per_km_fee" value="12"/></div>
+        <div><label class="text-xs font-bold text-gray-600">Base fee (₱)</label><input class="field mt-1" type="number" name="base_fee" required value="60"/></div>
+        <div><label class="text-xs font-bold text-gray-600">Per km (₱)</label><input class="field mt-1" type="number" name="per_km_fee" value="12"/></div>
       </div>
 
-      <div class="pt-4 border-t border-charcoal/5">
-        <div class="text-xs uppercase tracking-widest text-ember mb-3">Verification</div>
+      <div class="pt-4 border-t border-gray-200">
+        <div class="text-xs uppercase tracking-widest font-bold text-yellow-dark mb-3">Verification documents</div>
         <div class="grid sm:grid-cols-3 gap-3">
-          <label class="upload">
-            <span>Government ID</span>
-            <input type="file" name="gov_id" accept="image/*" required/>
-          </label>
-          <label class="upload">
-            <span>Selfie</span>
-            <input type="file" name="selfie" accept="image/*" required/>
-          </label>
-          <label class="upload">
-            <span>Video intro (15s)</span>
-            <input type="file" name="video" accept="video/*"/>
-          </label>
+          <label class="upload"><span>Government ID</span><input type="file" name="gov_id" accept="image/*" required/></label>
+          <label class="upload"><span>Selfie</span><input type="file" name="selfie" accept="image/*" required/></label>
+          <label class="upload"><span>Video intro (optional)</span><input type="file" name="video" accept="video/*"/></label>
         </div>
-        <p class="text-xs text-charcoal/50 mt-3 leading-relaxed">Verification is a respectful community review — usually approved within 24h. We never sell or share your documents.</p>
+        <p class="text-xs text-gray-600 mt-3 leading-relaxed">Documents are uploaded to a private storage bucket and only seen by our verification team. Usually reviewed within 24 hours.</p>
       </div>
 
-      <button class="btn-primary w-full !py-4 mt-4">Submit application</button>
+      <div id="formError" class="text-sm text-red-600 font-semibold hidden"></div>
+      <div id="formInfo"  class="text-sm text-yellow-dark font-semibold hidden"></div>
+
+      <button type="submit" class="btn-primary w-full !py-4 mt-4" id="submitBtn">Submit application</button>
     </form>
   </div>
 </section>
 
-
-<footer class="border-t border-charcoal/10 py-8 text-center text-xs text-charcoal/40">© 2026 YUMYUMPO Dispatch</footer>
+<footer class="border-t border-gray-200 py-8 text-center text-xs text-gray-400">© 2026 YUMYUMPO Dispatch</footer>
 
 <script type="module">
-import { enums, submitVerification } from "./assets/js/api.js";
-import { toast } from "./assets/js/components.js";
+import { isConfigured, signUp, getSession, getCurrentProfile } from "./assets/js/auth.js";
+import { renderSessionBadge } from "./assets/js/session-ui.js";
+import { getZones, updateRiderProfile, uploadVerificationFile, submitVerification, enums } from "./assets/js/api.js";
 
+renderSessionBadge(document.getElementById("sessionSlot"));
+
+// Zone picker
+const zones = await getZones();
 const wrap = document.getElementById("zoneChips");
 const chosen = new Set();
-enums.ZONES.forEach(z => {
+zones.forEach(z => {
   const b = document.createElement("button");
-  b.type = "button"; b.className = "zone-chip"; b.textContent = z;
-  b.addEventListener("click", () => { b.classList.toggle("on"); if (chosen.has(z)) chosen.delete(z); else chosen.add(z); });
+  b.type="button"; b.className="zone-chip"; b.textContent=z;
+  b.addEventListener("click", () => { b.classList.toggle("on"); chosen.has(z)?chosen.delete(z):chosen.add(z); });
   wrap.appendChild(b);
 });
 
+// If signed in already as a rider, hide the email/password row.
+const acctRow = document.getElementById("acctRow");
+const hint = document.getElementById("applyHint");
+const session = isConfigured() ? await getSession() : null;
+let existingProfile = null;
+if (session) {
+  existingProfile = await getCurrentProfile();
+  if (existingProfile?.role === "rider") {
+    acctRow.classList.add("hidden");
+    document.querySelector("input[name=email]").required = false;
+    document.querySelector("input[name=password]").required = false;
+    hint.innerHTML = `Signed in as <b>${existingProfile.profile.name}</b>. Submitting will update your profile and resubmit your verification.`;
+    // Prefill known values
+    const r = existingProfile.profile;
+    document.querySelector("input[name=name]").value = r.name || "";
+    document.querySelector("input[name=phone]").value = r.phone || "";
+    document.querySelector("input[name=whatsapp]").value = r.whatsapp || "";
+    (r.delivery_zones || []).forEach(z => {
+      const btn = [...wrap.children].find(b => b.textContent === z);
+      if (btn) { btn.classList.add("on"); chosen.add(z); }
+    });
+  }
+}
+
+const err = document.getElementById("formError");
+const info = document.getElementById("formInfo");
+function showErr(m){ err.textContent=m; err.classList.remove("hidden"); info.classList.add("hidden"); }
+function showInfo(m){ info.textContent=m; info.classList.remove("hidden"); err.classList.add("hidden"); }
+
 document.getElementById("riderForm").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const fd = new FormData(e.target);
-  const payload = Object.fromEntries([...fd.entries()].filter(([k,v]) => typeof v === "string"));
-  payload.delivery_zones = [...chosen];
-  await submitVerification(payload);
-  toast("Application sent — we'll review within 24h");
-  e.target.reset();
-  document.querySelectorAll(".zone-chip.on").forEach(b => b.classList.remove("on"));
-  chosen.clear();
+  err.classList.add("hidden"); info.classList.add("hidden");
+  const submit = document.getElementById("submitBtn");
+  const orig = submit.textContent; submit.disabled = true; submit.textContent = "Submitting…";
+
+  const f = new FormData(e.target);
+  try {
+    if (!isConfigured()) throw new Error("Supabase isn't configured yet. See README.");
+    if (!chosen.size) throw new Error("Pick at least one delivery zone.");
+
+    // 1) Ensure account
+    let riderRow = existingProfile?.profile;
+    let userId = (await getSession())?.user?.id;
+    if (!riderRow) {
+      const res = await signUp({
+        email: f.get("email"), password: f.get("password"),
+        role: "rider", displayName: f.get("name"),
+        phone: f.get("phone"), whatsapp: f.get("whatsapp"),
+      });
+      userId = res.user?.id;
+      if (!res.session) {
+        showInfo("Account created. Check your email to confirm, then sign in to finish verification.");
+        submit.disabled = false; submit.textContent = orig;
+        return;
+      }
+      // After confirmation auto-signin, look up profile.
+      const me = await getCurrentProfile();
+      riderRow = me?.profile;
+    }
+    if (!riderRow) throw new Error("Couldn't locate your driver profile. Please refresh and try again.");
+
+    // 2) Update profile details
+    submit.textContent = "Saving profile…";
+    await updateRiderProfile(riderRow.id, {
+      name: f.get("name"),
+      phone: f.get("phone"),
+      whatsapp: f.get("whatsapp"),
+      vehicle_type: f.get("vehicle"),
+      delivery_zones: [...chosen],
+      base_fee: Number(f.get("base_fee")),
+      per_km_fee: Number(f.get("per_km_fee")),
+    });
+
+    // 3) Upload verification files
+    submit.textContent = "Uploading documents…";
+    const idFile     = f.get("gov_id");
+    const selfieFile = f.get("selfie");
+    const videoFile  = f.get("video");
+    const [id_url, selfie_url, video_url] = await Promise.all([
+      idFile?.size  ? uploadVerificationFile(userId, idFile, "gov_id")     : null,
+      selfieFile?.size ? uploadVerificationFile(userId, selfieFile, "selfie") : null,
+      videoFile?.size  ? uploadVerificationFile(userId, videoFile, "video")  : null,
+    ]);
+
+    // 4) Create verification record
+    submit.textContent = "Submitting…";
+    await submitVerification({ rider_id: riderRow.id, id_url, selfie_url, video_url });
+
+    showInfo("Application received. We'll review within 24 hours and email you when you're verified.");
+    submit.disabled = true; submit.textContent = "Submitted ✓";
+    setTimeout(() => location.href = "./rider-dashboard.html", 2500);
+  } catch (ex) {
+    showErr(ex.message || String(ex));
+    submit.disabled = false; submit.textContent = orig;
+  }
 });
 </script>
 </body>

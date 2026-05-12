@@ -7,6 +7,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./assets/css/styles.css"/>
+<script src="./assets/js/config.js" onerror="window.__noConfig=true"></script>
 <script>
   tailwind.config = { theme: { extend: {
     colors: {
@@ -19,85 +20,108 @@
   }}};
 </script>
 </head>
-<body class="bg-cream text-charcoal font-sans">
+<body class="bg-gray-50 text-brand-black font-sans">
 
 <div class="dash-shell">
   <aside class="dash-side">
     <a href="./index.html" class="flex items-center gap-2 mb-10">
-      <span class="w-8 h-8 rounded-full bg-cream text-charcoal grid place-items-center font-display">Y</span>
-      <span class="font-display text-base">Admin</span>
+      <span class="w-9 h-9 rounded-2xl bg-brand-yellow text-brand-black grid place-items-center font-display font-black">Y</span>
+      <span class="font-display font-bold text-base">Admin</span>
     </a>
-    <div class="text-[10px] uppercase tracking-widest text-cream/40 mb-3 px-3">Ecosystem</div>
+    <div class="text-[10px] uppercase tracking-widest text-white/40 font-bold mb-3 px-3">Ecosystem</div>
     <nav class="dash-nav space-y-1">
       <a href="#" class="active" data-pane="verify">Verifications</a>
-      <a href="#" data-pane="riders">All Riders</a>
+      <a href="#" data-pane="riders">All Drivers</a>
       <a href="#" data-pane="restaurants">Restaurants</a>
       <a href="#" data-pane="zones">Zones</a>
       <a href="#" data-pane="analytics">Analytics</a>
     </nav>
   </aside>
   <main class="dash-main">
-    <header class="mb-8 flex items-start justify-between gap-4">
+    <header class="mb-8 flex items-start justify-between gap-4 flex-wrap">
       <div>
-        <div class="text-xs uppercase tracking-widest text-charcoal/50">Operations admin</div>
-        <h1 class="font-display text-3xl md:text-4xl mt-1">Ecosystem overview</h1>
+        <div class="text-xs uppercase tracking-widest text-gray-600 font-bold">Operations admin</div>
+        <h1 class="font-display text-3xl md:text-4xl font-black mt-1">Ecosystem overview</h1>
       </div>
-      <div id="notifSlot"></div>
+      <div class="flex items-center gap-2">
+        <div id="notifSlot"></div>
+        <div id="sessionSlot"></div>
+      </div>
     </header>
 
     <section class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-      <div class="kpi"><div class="kpi-label">Pending</div><div class="kpi-value" id="kpiPending">3</div></div>
-      <div class="kpi"><div class="kpi-label">Verified riders</div><div class="kpi-value" id="kpiVerified">—</div></div>
-      <div class="kpi"><div class="kpi-label">Active zones</div><div class="kpi-value">8</div></div>
-      <div class="kpi"><div class="kpi-label">Deliveries (24h)</div><div class="kpi-value">142</div></div>
+      <div class="kpi"><div class="kpi-label">Pending</div><div class="kpi-value" id="kpiPending">—</div></div>
+      <div class="kpi"><div class="kpi-label">Verified drivers</div><div class="kpi-value" id="kpiVerified">—</div></div>
+      <div class="kpi"><div class="kpi-label">Restaurants</div><div class="kpi-value" id="kpiRestaurants">—</div></div>
+      <div class="kpi"><div class="kpi-label">Deliveries (24h)</div><div class="kpi-value" id="kpiDeliveries">—</div></div>
     </section>
 
     <section id="pane-verify">
-      <h2 class="font-display text-2xl mb-5">Pending Verifications</h2>
+      <h2 class="font-display text-2xl font-bold mb-5">Pending Verifications</h2>
       <div id="verifyList" class="space-y-3"></div>
     </section>
 
     <section id="pane-riders" class="hidden mt-10">
-      <h2 class="font-display text-2xl mb-5">All Riders</h2>
-      <div id="riderTable" class="bg-white rounded-2xl border border-charcoal/5 overflow-hidden"></div>
+      <h2 class="font-display text-2xl font-bold mb-5">All Drivers</h2>
+      <div id="riderTable" class="bg-white rounded-2xl border border-gray-200 overflow-hidden"></div>
     </section>
 
     <section id="pane-restaurants" class="hidden mt-10">
-      <h2 class="font-display text-2xl mb-5">Restaurants</h2>
-      <div class="bg-white rounded-2xl border border-charcoal/5 p-5 text-sm">
-        <ul class="space-y-3">
-          <li class="flex items-center justify-between"><span>Tasteful Kitchen — El Nido</span><span class="badge badge-verified">Active</span></li>
-          <li class="flex items-center justify-between"><span>Harvest House — Cebu IT Park</span><span class="badge badge-verified">Active</span></li>
-          <li class="flex items-center justify-between"><span>Casa Marina — Poblacion</span><span class="badge badge-verified">Active</span></li>
-        </ul>
-      </div>
+      <h2 class="font-display text-2xl font-bold mb-5">Restaurants</h2>
+      <div id="restaurantTable" class="bg-white rounded-2xl border border-gray-200 overflow-hidden p-5"></div>
     </section>
 
     <section id="pane-zones" class="hidden mt-10">
-      <h2 class="font-display text-2xl mb-5">Delivery Zones</h2>
+      <h2 class="font-display text-2xl font-bold mb-5">Delivery Zones</h2>
       <div id="zoneAdmin" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
     </section>
 
     <section id="pane-analytics" class="hidden mt-10">
-      <h2 class="font-display text-2xl mb-5">Analytics</h2>
+      <h2 class="font-display text-2xl font-bold mb-5">Analytics</h2>
       <div class="grid md:grid-cols-2 gap-3">
-        <div class="kpi"><div class="kpi-label">Avg rider rating</div><div class="kpi-value">4.78</div></div>
-        <div class="kpi"><div class="kpi-label">Acceptance rate</div><div class="kpi-value">86%</div></div>
-        <div class="kpi"><div class="kpi-label">Most active zone</div><div class="kpi-value text-2xl">BGC</div></div>
-        <div class="kpi"><div class="kpi-label">Top rider</div><div class="kpi-value text-2xl">Carlo B.</div></div>
+        <div class="kpi"><div class="kpi-label">Avg driver rating</div><div class="kpi-value" id="anRating">—</div></div>
+        <div class="kpi"><div class="kpi-label">Acceptance rate</div><div class="kpi-value" id="anAccept">—</div></div>
+        <div class="kpi"><div class="kpi-label">Most active zone</div><div class="kpi-value text-2xl" id="anZone">—</div></div>
+        <div class="kpi"><div class="kpi-label">Top driver</div><div class="kpi-value text-2xl" id="anTop">—</div></div>
       </div>
     </section>
   </main>
 </div>
 
 <script type="module">
-import { fetchRiders, enums } from "./assets/js/api.js";
+import { isConfigured, requireAuth, getCurrentProfile, getUser } from "./assets/js/auth.js";
+import { renderSessionBadge, bindAuthRefresh } from "./assets/js/session-ui.js";
+import { supabase, HAS_SUPABASE } from "./assets/js/supabase.js";
+import { fetchRiders, getZones, fetchPendingVerifications, decideVerification, fetchRequests } from "./assets/js/api.js";
 import { toast } from "./assets/js/components.js";
 import { mountNotificationCenter } from "./assets/js/notification-center.js";
 import { pushNotification } from "./assets/js/notifications.js";
 
+renderSessionBadge(document.getElementById("sessionSlot"));
+bindAuthRefresh(document.getElementById("sessionSlot"));
+
+// Admin gate
+if (HAS_SUPABASE) {
+  const me = await requireAuth();
+  const user = await getUser();
+  const isAdmin = user?.app_metadata?.is_admin === true;
+  if (!isAdmin) {
+    document.body.innerHTML = `<div class="min-h-screen grid place-items-center p-8 text-center">
+      <div>
+        <h1 class="font-display text-3xl font-black">Admin access only</h1>
+        <p class="text-sm text-gray-600 mt-2">This account doesn't have admin privileges.</p>
+        <a href="./index.html" class="btn-primary mt-6">Back to home</a>
+      </div></div>`;
+    throw new Error("not admin");
+  }
+} else {
+  document.body.insertAdjacentHTML("beforeend",
+    `<div class="config-banner">⚠ Preview mode. Add Supabase keys + grant admin via <code>app_metadata.is_admin</code> on your user to unlock real data.</div>`);
+}
+
 mountNotificationCenter(document.getElementById("notifSlot"), { type:"admin", id:"admin" });
 
+// Pane routing
 document.querySelectorAll("[data-pane]").forEach(a => {
   a.addEventListener("click", e => {
     e.preventDefault();
@@ -108,75 +132,147 @@ document.querySelectorAll("[data-pane]").forEach(a => {
   });
 });
 
-const pendingMock = [
-  { name:"Andrea Lim", vehicle:"motorcycle", zones:["BGC"], photo:"https://i.pravatar.cc/120?img=20" },
-  { name:"Joel Tan",   vehicle:"scooter",    zones:["Cebu IT Park"], photo:"https://i.pravatar.cc/120?img=53" },
-  { name:"Mika Reyes", vehicle:"bicycle",    zones:["Las Cabanas"], photo:"https://i.pravatar.cc/120?img=37" },
-];
-const verifyList = document.getElementById("verifyList");
-verifyList.innerHTML = pendingMock.map((p,i) => `
-  <div class="bg-white border border-charcoal/5 rounded-2xl p-5 flex items-center gap-4">
-    <img src="${p.photo}" class="w-14 h-14 rounded-full object-cover"/>
-    <div class="flex-1">
-      <div class="font-display text-lg">${p.name}</div>
-      <div class="text-xs text-charcoal/60 capitalize">${p.vehicle} · ${p.zones.join(", ")}</div>
-    </div>
-    <div class="flex gap-2">
-      <button class="btn-ghost reject" data-i="${i}">Reject</button>
-      <button class="btn-primary approve" data-i="${i}">Approve</button>
-    </div>
-  </div>
-`).join("");
-document.querySelectorAll(".approve").forEach(b => b.addEventListener("click", async () => {
-  const p = pendingMock[+b.dataset.i];
-  b.closest(".bg-white").style.opacity = "0.4";
-  toast("Rider approved");
-  await pushNotification({
-    recipient_type:"rider", recipient_id:"pending_"+b.dataset.i,
-    kind:"verification_approved",
-    title:"Your verification has been approved.",
-    body:`Welcome aboard, ${p.name}. You're now a Verified Delivery Partner.`,
-  });
-}));
-document.querySelectorAll(".reject").forEach(b => b.addEventListener("click", async () => {
-  const p = pendingMock[+b.dataset.i];
-  b.closest(".bg-white").style.opacity = "0.4";
-  toast("Application rejected");
-  await pushNotification({
-    recipient_type:"rider", recipient_id:"pending_"+b.dataset.i,
-    kind:"verification_rejected",
-    title:"Verification needs another look.",
-    body:`Hi ${p.name}, please review your submission and try again.`,
-  });
-}));
+// === Verifications =========================================================
+async function renderPending() {
+  const list = document.getElementById("verifyList");
+  list.innerHTML = `<div class="text-sm text-gray-600">Loading…</div>`;
+  try {
+    const data = await fetchPendingVerifications();
+    document.getElementById("kpiPending").textContent = data.length;
+    if (!data.length) { list.innerHTML = `<div class="bg-white border border-gray-200 rounded-2xl p-6 text-sm text-gray-600">No pending verifications.</div>`; return; }
+    list.innerHTML = data.map(v => {
+      const r = v.riders || {};
+      return `
+      <div class="bg-white border border-gray-200 rounded-2xl p-5 flex items-center gap-4 flex-wrap" data-vid="${v.id}" data-rid="${v.rider_id}">
+        <img src="${r.profile_photo || 'https://i.pravatar.cc/120?u=' + v.rider_id}" class="w-14 h-14 rounded-full object-cover"/>
+        <div class="flex-1 min-w-[200px]">
+          <div class="font-display font-bold text-lg">${r.name || "—"}</div>
+          <div class="text-xs text-gray-600 capitalize">${r.vehicle_type || "—"} · ${(r.delivery_zones||[]).join(", ") || "no zones"}</div>
+          <div class="mt-2 flex gap-2 flex-wrap">
+            ${v.id_url ? `<a class="badge badge-zone" data-doc="${v.id_url}" data-bucket="verifications">ID</a>` : ""}
+            ${v.selfie_url ? `<a class="badge badge-zone" data-doc="${v.selfie_url}" data-bucket="verifications">Selfie</a>` : ""}
+            ${v.video_url ? `<a class="badge badge-zone" data-doc="${v.video_url}" data-bucket="verifications">Video</a>` : ""}
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button class="btn-ghost reject">Reject</button>
+          <button class="btn-primary approve">Approve</button>
+        </div>
+      </div>`;
+    }).join("");
 
-const riders = await fetchRiders();
-document.getElementById("kpiVerified").textContent = riders.filter(r => r.verified).length;
-document.getElementById("riderTable").innerHTML = `
-  <table class="w-full text-sm">
-    <thead class="bg-warm"><tr class="text-left text-charcoal/60">
-      <th class="p-4 font-normal">Name</th><th class="p-4 font-normal">Vehicle</th>
-      <th class="p-4 font-normal">Zones</th><th class="p-4 font-normal">Rating</th>
-      <th class="p-4 font-normal">Status</th><th class="p-4 font-normal"></th>
-    </tr></thead>
-    <tbody>${riders.map(r => `
-      <tr class="border-t border-charcoal/5">
-        <td class="p-4 flex items-center gap-2"><img src="${r.photo}" class="w-7 h-7 rounded-full"/>${r.name}</td>
-        <td class="p-4 capitalize">${r.vehicle}</td>
-        <td class="p-4 text-charcoal/60">${r.zones.join(", ")}</td>
-        <td class="p-4">${r.rating.toFixed(1)}</td>
-        <td class="p-4"><span class="status-dot status-${r.status}"></span> <span class="capitalize">${r.status}</span></td>
-        <td class="p-4 text-right"><button class="text-xs text-ember hover:underline">Suspend</button></td>
-      </tr>`).join("")}
-    </tbody>
-  </table>`;
+    list.querySelectorAll(".approve").forEach(b => b.addEventListener("click", async () => {
+      const card = b.closest("[data-vid]");
+      try {
+        await decideVerification(card.dataset.vid, card.dataset.rid, "approve");
+        await pushNotification({ recipient_type:"rider", recipient_id: card.dataset.rid, kind:"verification_approved",
+          title:"Your verification has been approved.", body:"You're now a Verified Delivery Partner." });
+        card.style.opacity = "0.4"; toast("Approved");
+      } catch (e) { toast(e.message); }
+    }));
+    list.querySelectorAll(".reject").forEach(b => b.addEventListener("click", async () => {
+      const card = b.closest("[data-vid]");
+      try {
+        await decideVerification(card.dataset.vid, card.dataset.rid, "reject");
+        await pushNotification({ recipient_type:"rider", recipient_id: card.dataset.rid, kind:"verification_rejected",
+          title:"Verification needs another look.", body:"Please review your submission and try again." });
+        card.style.opacity = "0.4"; toast("Rejected");
+      } catch (e) { toast(e.message); }
+    }));
 
-const za = document.getElementById("zoneAdmin");
-za.innerHTML = enums.ZONES.map(z => `
-  <div class="bg-white border border-charcoal/5 rounded-2xl p-4 flex items-center justify-between">
-    <div class="font-display">${z}</div>
-    <span class="badge badge-verified">Active</span>
-  </div>`).join("");
+    // Signed-URL fetch for document badges
+    list.querySelectorAll("[data-doc]").forEach(a => a.addEventListener("click", async (e) => {
+      e.preventDefault();
+      if (!HAS_SUPABASE) return;
+      const { data, error } = await supabase.storage.from(a.dataset.bucket).createSignedUrl(a.dataset.doc, 60);
+      if (!error && data?.signedUrl) window.open(data.signedUrl, "_blank");
+    }));
+  } catch (e) { list.innerHTML = `<div class="text-sm text-red-600">${e.message}</div>`; }
+}
+
+// === Riders table ==========================================================
+async function renderRiders() {
+  const riders = await fetchRiders();
+  document.getElementById("kpiVerified").textContent = riders.filter(r => r.verified).length;
+  document.getElementById("riderTable").innerHTML = `
+    <table class="w-full text-sm">
+      <thead class="bg-yellow-pale"><tr class="text-left text-gray-600 font-bold">
+        <th class="p-4">Name</th><th class="p-4">Vehicle</th><th class="p-4">Zones</th>
+        <th class="p-4">Rating</th><th class="p-4">Status</th><th class="p-4"></th>
+      </tr></thead>
+      <tbody>${riders.map(r => `
+        <tr class="border-t border-gray-100">
+          <td class="p-4 flex items-center gap-2"><img src="${r.photo}" class="w-7 h-7 rounded-full"/>${r.name}</td>
+          <td class="p-4 capitalize">${r.vehicle}</td>
+          <td class="p-4 text-gray-600">${r.zones.join(", ")}</td>
+          <td class="p-4 font-bold">${r.rating ? r.rating.toFixed(1) : "—"}</td>
+          <td class="p-4"><span class="status-dot status-${r.status}"></span> <span class="capitalize">${r.status}</span></td>
+          <td class="p-4 text-right"><button class="text-xs font-bold text-red-600 hover:underline suspend-btn" data-id="${r.id}">Suspend</button></td>
+        </tr>`).join("")}
+      </tbody>
+    </table>`;
+  document.querySelectorAll(".suspend-btn").forEach(b => b.addEventListener("click", async () => {
+    if (!HAS_SUPABASE) return toast("Supabase required");
+    try {
+      await supabase.from("riders").update({ verification_status: "suspended", availability_status: "offline" }).eq("id", b.dataset.id);
+      await pushNotification({ recipient_type:"rider", recipient_id: b.dataset.id, kind:"rider_suspended",
+        title:"Your account has been suspended.", body:"Reach out to support if you believe this is a mistake." });
+      toast("Driver suspended"); renderRiders();
+    } catch (e) { toast(e.message); }
+  }));
+}
+
+// === Restaurants ===========================================================
+async function renderRestaurants() {
+  const wrap = document.getElementById("restaurantTable");
+  if (!HAS_SUPABASE) { wrap.innerHTML = `<div class="text-sm text-gray-600">Connect Supabase to view restaurants.</div>`; return; }
+  const { data, error } = await supabase.from("restaurants").select("*").order("created_at", { ascending: false });
+  if (error) { wrap.innerHTML = `<div class="text-sm text-red-600">${error.message}</div>`; return; }
+  document.getElementById("kpiRestaurants").textContent = data.length;
+  wrap.innerHTML = data.length
+    ? `<ul class="space-y-3">${data.map(r => `<li class="flex items-center justify-between"><div><div class="font-display font-bold">${r.name}</div><div class="text-xs text-gray-600">${r.city || r.default_zone || ""}</div></div><span class="badge badge-verified">Active</span></li>`).join("")}</ul>`
+    : `<div class="text-sm text-gray-600">No restaurants yet.</div>`;
+}
+
+// === Zones =================================================================
+async function renderZones() {
+  const zones = await getZones();
+  document.getElementById("zoneAdmin").innerHTML = zones.map(z => `
+    <div class="bg-white border border-gray-200 rounded-2xl p-4 flex items-center justify-between">
+      <div class="font-display font-bold">${z}</div><span class="badge badge-verified">Active</span>
+    </div>`).join("");
+}
+
+// === Analytics =============================================================
+async function renderAnalytics() {
+  const riders = await fetchRiders();
+  const ratings = riders.map(r => r.rating).filter(Boolean);
+  const avg = ratings.length ? (ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(2) : "—";
+  document.getElementById("anRating").textContent = avg;
+
+  const requests = await fetchRequests({ limit: 200 });
+  const accepted = requests.filter(r => r.status !== "Available" && r.status !== "Cancelled").length;
+  const rate = requests.length ? Math.round((accepted/requests.length)*100) + "%" : "—";
+  document.getElementById("anAccept").textContent = rate;
+
+  const today = new Date(); today.setHours(today.getHours() - 24);
+  const recent = requests.filter(r => new Date(r.created_at || r.created || 0) > today && r.status === "Delivered").length;
+  document.getElementById("kpiDeliveries").textContent = recent;
+
+  const zoneCount = {};
+  requests.forEach(r => { zoneCount[r.zone] = (zoneCount[r.zone]||0)+1; });
+  const topZone = Object.entries(zoneCount).sort((a,b)=>b[1]-a[1])[0]?.[0] || "—";
+  document.getElementById("anZone").textContent = topZone;
+
+  const top = [...riders].sort((a,b) => b.completed - a.completed)[0];
+  document.getElementById("anTop").textContent = top?.name?.split(" ")[0] || "—";
+}
+
+renderPending();
+renderRiders();
+renderRestaurants();
+renderZones();
+renderAnalytics();
 </script>
 </body>
 </html>

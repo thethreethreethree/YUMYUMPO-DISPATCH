@@ -1,4 +1,8 @@
-// Lightweight global page hooks (scroll fade-in, year, etc.)
+// Global page hooks — runs on every page.
+if ("serviceWorker" in navigator && location.protocol !== "file:") {
+  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
+}
+
 const obs = new IntersectionObserver((entries) => {
   for (const e of entries) {
     if (e.isIntersecting) {
@@ -8,4 +12,4 @@ const obs = new IntersectionObserver((entries) => {
   }
 }, { rootMargin: "0px 0px -10% 0px" });
 
-document.querySelectorAll(".zone-card, .step-card").forEach(el => obs.observe(el));
+document.querySelectorAll(".zone-card, .feature-card").forEach(el => obs.observe(el));

@@ -3,10 +3,11 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Rider Dashboard · YUMYUMPO Dispatch</title>
+<title>Driver Dashboard · YUMYUMPO Dispatch</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./assets/css/styles.css"/>
+<script src="./assets/js/config.js" onerror="window.__noConfig=true"></script>
 <script>
   tailwind.config = { theme: { extend: {
     colors: {
@@ -19,91 +20,227 @@
   }}};
 </script>
 </head>
-<body class="bg-cream text-charcoal font-sans">
+<body class="bg-gray-50 text-brand-black font-sans">
 
-<header class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-cream/70 border-b border-charcoal/5">
-  <div class="max-w-7xl mx-auto px-5 md:px-8 h-16 flex items-center justify-between">
+<header class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-white/85 border-b border-gray-200">
+  <div class="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
     <a href="./index.html" class="flex items-center gap-2">
-      <span class="w-8 h-8 rounded-full bg-charcoal text-cream grid place-items-center font-display text-sm">Y</span>
-      <span class="font-display text-lg">Rider</span>
+      <span class="w-9 h-9 rounded-2xl bg-brand-yellow text-brand-black grid place-items-center font-display font-black">Y</span>
+      <span class="font-display font-bold text-lg">Driver</span>
     </a>
     <div class="flex items-center gap-3">
+      <select id="status" class="field !w-auto !py-2 !text-sm"></select>
       <div id="notifSlot"></div>
-      <span class="text-xs text-charcoal/60 hidden sm:inline">Status</span>
-      <select id="status" class="field !w-auto !py-1.5">
-        <option value="online">Online</option>
-        <option value="available">Available</option>
-        <option value="busy">Busy</option>
-        <option value="offline">Offline</option>
-      </select>
+      <div id="sessionSlot"></div>
     </div>
   </div>
 </header>
 
-<main class="pt-24 pb-24 max-w-5xl mx-auto px-5 md:px-8">
-  <section class="grid md:grid-cols-3 gap-3 mb-8">
-    <div class="kpi"><div class="kpi-label">Today's earnings</div><div class="kpi-value">₱1,240</div></div>
-    <div class="kpi"><div class="kpi-label">Deliveries</div><div class="kpi-value">8</div></div>
-    <div class="kpi"><div class="kpi-label">Rating</div><div class="kpi-value">4.9</div></div>
+<main class="pt-24 pb-24 max-w-5xl mx-auto px-4 md:px-8">
+  <section class="grid md:grid-cols-4 gap-3 mb-8">
+    <div class="kpi md:col-span-2">
+      <div class="kpi-label">Driver</div>
+      <div class="kpi-value" id="riderName">—</div>
+      <div class="text-xs text-gray-600 mt-2 font-semibold" id="riderMeta">—</div>
+    </div>
+    <div class="kpi"><div class="kpi-label">Completed</div><div class="kpi-value" id="kpiDone">—</div></div>
+    <div class="kpi"><div class="kpi-label">Rating</div><div class="kpi-value" id="kpiRating">—</div></div>
+  </section>
+
+  <section class="mb-10">
+    <div class="flex items-end justify-between mb-4">
+      <h2 class="font-display text-2xl font-bold">Incoming requests</h2>
+      <button id="refreshBtn" class="text-xs font-bold text-yellow-dark hover:underline">Refresh</button>
+    </div>
+    <div id="incoming" class="space-y-3"></div>
   </section>
 
   <section>
-    <h2 class="font-display text-2xl mb-4">Incoming requests</h2>
-    <div id="incoming" class="space-y-3"></div>
+    <h2 class="font-display text-2xl font-bold mb-4">In progress</h2>
+    <div id="inProgress" class="space-y-3"></div>
+  </section>
+
+  <section class="mt-10">
+    <div class="flex items-end justify-between mb-4">
+      <h2 class="font-display text-2xl font-bold">Profile</h2>
+      <button id="editProfile" class="btn-ghost !py-2 !px-4 !text-sm">Edit zones & pricing</button>
+    </div>
+    <div id="profileSummary" class="bg-white rounded-2xl border border-gray-200 p-5 text-sm"></div>
   </section>
 </main>
 
 <script type="module">
-import { fetchRequests } from "./assets/js/api.js";
-import { toast } from "./assets/js/components.js";
+import { isConfigured, requireAuth } from "./assets/js/auth.js";
+import { renderSessionBadge, bindAuthRefresh } from "./assets/js/session-ui.js";
+import {
+  fetchRider, fetchRequests, acceptRequest, markPickedUp, markDelivered,
+  setRiderStatus, updateRiderProfile, getZones, enums, trackEvent,
+} from "./assets/js/api.js";
+import { toast, modal, closeModal } from "./assets/js/components.js";
 import { mountNotificationCenter } from "./assets/js/notification-center.js";
-import { pushNotification, notifyRequestAccepted, notifyDeliveryCompleted } from "./assets/js/notifications.js";
+import { notifyRequestAccepted, notifyDeliveryCompleted } from "./assets/js/notifications.js";
 
-const RIDER_ID = "r1";
-const RIDER_NAME = "Mark Villanueva";
-const RESTAURANT_ID = "demo";
-mountNotificationCenter(document.getElementById("notifSlot"), { type:"rider", id: RIDER_ID });
+const sessionSlot = document.getElementById("sessionSlot");
 
-// Seed a couple of starter notifications in demo mode so the bell isn't empty.
-(async () => {
-  const seen = localStorage.getItem("seeded_rider_notifs");
-  if (seen) return;
-  localStorage.setItem("seeded_rider_notifs", "1");
-  await pushNotification({ recipient_type:"rider", recipient_id: RIDER_ID,
-    kind:"verification_approved", title:"Your verification has been approved.",
-    body:"You're now a Verified Delivery Partner." });
-  await pushNotification({ recipient_type:"rider", recipient_id: RIDER_ID,
-    kind:"new_restaurant_nearby", title:"New restaurant added in El Nido Town Proper.",
-    body:"Casa Marina just joined Dispatch." });
-})();
+// Auth gate
+let me = null, rider = null;
+if (isConfigured()) {
+  me = await requireAuth("rider");
+  if (!me) throw new Error("redirecting");
+  rider = await fetchRider(me.profile.id);
+  if (!rider) { location.href = "./riders.html?missing=1"; throw new Error("no profile"); }
+} else {
+  rider = await fetchRider("r1"); // preview mode
+  document.body.insertAdjacentHTML("beforeend",
+    `<div class="config-banner">⚠ Preview mode. Add Supabase keys in <code>assets/js/config.js</code> to go live.</div>`);
+}
+renderSessionBadge(sessionSlot);
+bindAuthRefresh(sessionSlot);
+mountNotificationCenter(document.getElementById("notifSlot"), { type:"rider", id: rider.id });
 
-const reqs = (await fetchRequests()).filter(r => r.status === "Available" || r.status === "Accepted");
-const incoming = document.getElementById("incoming");
-incoming.innerHTML = reqs.map(r => `
-  <div class="rider-card flex items-center justify-between gap-4 flex-wrap">
-    <div>
-      <div class="text-xs uppercase tracking-widest text-charcoal/40">${r.restaurant} · ${r.zone}</div>
-      <div class="font-display text-lg mt-1">${r.pickup} → ${r.dropoff}</div>
-      <div class="text-xs text-charcoal/60 mt-1">${r.created}</div>
-    </div>
-    <div class="flex gap-2">
-      <button class="btn-ghost decline">Decline</button>
-      <button class="btn-primary accept">Accept</button>
-    </div>
+// Status selector
+const statusSel = document.getElementById("status");
+["online","available","busy","offline"].forEach(s => statusSel.insertAdjacentHTML("beforeend", `<option value="${s}" ${rider.status===s?"selected":""}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`));
+statusSel.addEventListener("change", async () => {
+  try { await setRiderStatus(rider.id, statusSel.value); toast("Status set to " + statusSel.value); rider.status = statusSel.value; trackEvent("status_change", { status: statusSel.value }, { type:"rider", id: rider.id }); }
+  catch (e) { toast(e.message); }
+});
+
+// Profile summary
+document.getElementById("riderName").textContent = rider.name;
+document.getElementById("riderMeta").textContent = `${rider.vehicle} · ${rider.zones.join(", ") || "no zones set"}`;
+document.getElementById("kpiDone").textContent = rider.completed;
+document.getElementById("kpiRating").textContent = rider.rating ? rider.rating.toFixed(1) : "—";
+document.getElementById("profileSummary").innerHTML = `
+  <div class="grid sm:grid-cols-3 gap-4">
+    <div><div class="text-xs uppercase tracking-widest font-bold text-gray-600">Vehicle</div><div class="font-display text-xl font-bold capitalize mt-1">${rider.vehicle}</div></div>
+    <div><div class="text-xs uppercase tracking-widest font-bold text-gray-600">Base fee</div><div class="font-display text-xl font-bold mt-1">₱${rider.base_fee}</div></div>
+    <div><div class="text-xs uppercase tracking-widest font-bold text-gray-600">Per km</div><div class="font-display text-xl font-bold mt-1">${rider.per_km_fee ? "₱"+rider.per_km_fee : "Flat"}</div></div>
   </div>
-`).join("") || `<p class="text-sm text-charcoal/60">No incoming requests right now. Stay online — restaurants will reach you.</p>`;
+  <div class="mt-4 flex flex-wrap gap-2">${(rider.zones||[]).map(z => `<span class="badge badge-zone">${z}</span>`).join("") || `<span class="text-xs text-gray-600">No zones set yet — add some so restaurants can find you.</span>`}</div>
+`;
 
-document.querySelectorAll(".accept").forEach((b,i) => b.addEventListener("click", async () => {
-  b.closest(".rider-card").style.opacity = "0.5";
-  const req = reqs[i];
-  toast("Accepted — restaurant will WhatsApp you");
-  await notifyRequestAccepted(req, RESTAURANT_ID, RIDER_NAME);
-  // Mark delivered after a short delay to demo the full loop
-  setTimeout(() => notifyDeliveryCompleted(req, RESTAURANT_ID, RIDER_NAME), 6000);
-}));
-document.querySelectorAll(".decline").forEach(b => b.addEventListener("click", () => { b.closest(".rider-card").remove(); }));
+// Render queues
+async function render() {
+  const incoming = document.getElementById("incoming");
+  const inProg   = document.getElementById("inProgress");
+  incoming.innerHTML = `<div class="text-sm text-gray-600">Loading…</div>`;
+  inProg.innerHTML   = "";
+  try {
+    const open = await fetchRequests({ openInZones: rider.zones, limit: 30 });
+    const mine = await fetchRequests({ rider_id: rider.id, limit: 30 });
+    const active = mine.filter(r => ["Accepted","Picked Up"].includes(r.status));
 
-document.getElementById("status").addEventListener("change", e => toast("Status: " + e.target.value));
+    incoming.innerHTML = open.length ? open.map(r => requestCard(r, "open")).join("")
+      : `<div class="bg-white border border-gray-200 rounded-2xl p-6 text-sm text-gray-600">No incoming requests right now. Stay online — restaurants will find you.</div>`;
+    inProg.innerHTML = active.length ? active.map(r => requestCard(r, "active")).join("")
+      : `<div class="bg-white border border-gray-200 rounded-2xl p-6 text-sm text-gray-600">Nothing in progress.</div>`;
+
+    bindActions();
+  } catch (e) { incoming.innerHTML = `<div class="text-sm text-red-600">${e.message}</div>`; }
+}
+
+function requestCard(r, mode) {
+  const created = r.created_at || r.created || "";
+  return `
+    <div class="rider-card flex items-start justify-between gap-4 flex-wrap" data-id="${r.id}">
+      <div class="min-w-0">
+        <div class="text-xs uppercase tracking-widest text-gray-600 font-bold">${r.zone}</div>
+        <div class="font-display text-lg font-bold mt-1">${r.pickup} → ${r.dropoff}</div>
+        <div class="text-xs text-gray-600 mt-1">${formatTime(created)}${r.notes ? " · " + escapeHtml(r.notes) : ""}</div>
+      </div>
+      <div class="flex gap-2">
+        ${mode === "open" ? `<button class="btn-ghost decline" data-id="${r.id}">Skip</button><button class="btn-primary accept" data-id="${r.id}">Accept</button>`
+          : r.status === "Accepted" ? `<button class="btn-primary pickup" data-id="${r.id}">Picked up</button>`
+          : `<button class="btn-primary deliver" data-id="${r.id}">Delivered</button>`}
+      </div>
+    </div>`;
+}
+function escapeHtml(s){ return String(s??"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+function formatTime(t){ try { return new Date(t).toLocaleString(); } catch { return t; } }
+
+function bindActions() {
+  document.querySelectorAll(".accept").forEach(b => b.addEventListener("click", async () => {
+    b.disabled = true;
+    try {
+      const req = await acceptRequest(b.dataset.id, rider.id);
+      if (!req) throw new Error("Already accepted by another driver");
+      await notifyRequestAccepted(req, req.restaurant_id, rider.name);
+      toast("Accepted — restaurant will reach you on WhatsApp");
+      render();
+    } catch (e) { toast(e.message); b.disabled = false; }
+  }));
+  document.querySelectorAll(".decline").forEach(b => b.addEventListener("click", () => {
+    b.closest(".rider-card").remove();
+  }));
+  document.querySelectorAll(".pickup").forEach(b => b.addEventListener("click", async () => {
+    try { await markPickedUp(b.dataset.id); toast("Marked as picked up"); render(); } catch(e){ toast(e.message); }
+  }));
+  document.querySelectorAll(".deliver").forEach(b => b.addEventListener("click", async () => {
+    try {
+      const req = await markDelivered(b.dataset.id);
+      await notifyDeliveryCompleted(req, req.restaurant_id, rider.name);
+      toast("Delivery completed");
+      rider = await fetchRider(rider.id); // refresh counters
+      document.getElementById("kpiDone").textContent = rider.completed;
+      render();
+    } catch(e){ toast(e.message); }
+  }));
+}
+
+document.getElementById("refreshBtn").addEventListener("click", render);
+
+// Edit profile modal
+document.getElementById("editProfile").addEventListener("click", async () => {
+  const zones = await getZones();
+  modal(`
+    <div class="text-xs uppercase tracking-widest font-bold text-yellow-dark mb-2">Edit profile</div>
+    <h2 class="font-display text-2xl font-bold mb-4">Zones & pricing</h2>
+    <form id="profForm" class="space-y-3">
+      <div>
+        <label class="text-xs font-bold text-gray-600">Vehicle</label>
+        <select class="field mt-1" name="vehicle_type">${enums.VEHICLES.map(v => `<option value="${v}" ${rider.vehicle===v?"selected":""}>${v}</option>`).join("")}</select>
+      </div>
+      <div>
+        <label class="text-xs font-bold text-gray-600">Zones (pick all that apply)</label>
+        <div id="zoneChips" class="flex flex-wrap gap-2 mt-2">${zones.map(z => `<button type="button" class="zone-chip ${rider.zones.includes(z)?"on":""}">${z}</button>`).join("")}</div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-xs font-bold text-gray-600">Base fee (₱)</label><input class="field mt-1" type="number" name="base_fee" value="${rider.base_fee}"/></div>
+        <div><label class="text-xs font-bold text-gray-600">Per km (₱)</label><input class="field mt-1" type="number" name="per_km_fee" value="${rider.per_km_fee}"/></div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" class="btn-ghost" id="profCancel">Cancel</button>
+        <button class="btn-primary" id="profSave">Save</button>
+      </div>
+    </form>
+  `);
+  const chosen = new Set(rider.zones);
+  document.querySelectorAll("#zoneChips .zone-chip").forEach(c => c.addEventListener("click", () => {
+    c.classList.toggle("on");
+    const v = c.textContent;
+    if (chosen.has(v)) chosen.delete(v); else chosen.add(v);
+  }));
+  document.getElementById("profCancel").addEventListener("click", closeModal);
+  document.getElementById("profForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    try {
+      const updated = await updateRiderProfile(rider.id, {
+        vehicle_type: f.get("vehicle_type"),
+        delivery_zones: [...chosen],
+        base_fee: Number(f.get("base_fee")),
+        per_km_fee: Number(f.get("per_km_fee")),
+      });
+      rider = await fetchRider(rider.id);
+      closeModal();
+      toast("Profile saved");
+      location.reload();
+    } catch (ex) { toast(ex.message); }
+  });
+});
+
+render();
 </script>
 </body>
 </html>

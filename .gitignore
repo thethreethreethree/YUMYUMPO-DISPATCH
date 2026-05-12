@@ -3,3 +3,5 @@
 .env
 .env.local
 node_modules
+# Local Supabase keys — never commit
+assets/js/config.js

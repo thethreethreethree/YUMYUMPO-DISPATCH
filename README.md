@@ -1,122 +1,148 @@
 # YUMYUMPO Dispatch
 
-The official logistics and rider infrastructure partner of **YUMYUMPO**.
+The official **driver discovery partner** of YUMYUMPO. Restaurants find independent delivery drivers — drivers get discovered. Coordination happens between them, off-platform.
 
-A decentralized hospitality logistics platform that connects restaurants with **independent**, **verified** delivery partners. Dispatch is the visibility layer — it is **not** a centralized dispatch system, fleet operator, or food-payment processor.
+We are **not a delivery company**. We don't employ drivers, own fleets, run deliveries, or process food payments. We are a discovery + verification + notification layer, full stop.
 
-> "Operational infrastructure built for modern hospitality businesses."
-
-Reference design language: [YUMYUMPO Discovery](https://thethreethreethree.github.io/YUMYUMPO/)
+Reference brand: [YUMYUMPO Discovery](https://thethreethreethree.github.io/YUMYUMPO/)
 
 ---
 
-## Platform philosophy
+## What's in the box
 
-- **Decentralized** — no central dispatch algorithm.
-- **Independent riders** — they set their own zones and pricing.
-- **Restaurant-first** — restaurants build their own preferred rider teams.
-- **Coordination off-platform** — communication happens via WhatsApp / phone calls. We do not run a chat system.
-
----
-
-## Pages
-
-| Page | Path |
-|---|---|
-| Homepage | `/index.html` |
-| Restaurant dashboard | `/restaurants.html` |
-| Rider onboarding | `/riders.html` |
-| Rider marketplace | `/marketplace.html` |
-| Rider profile | `/rider.html?id=…` |
-| Rider dashboard | `/rider-dashboard.html` |
-| Admin | `/admin.html` |
-| About | `/about.html` |
-| Auth | `/auth.html` |
+- Driver marketplace (filter by zone, vehicle, status, verified)
+- Driver profiles (WhatsApp / Call CTAs, no in-app chat)
+- Restaurant dashboard (browse drivers, save preferred, send requests, rate after delivery, cancel)
+- Driver dashboard (status toggle, incoming requests by zone, accept/pickup/deliver lifecycle, profile editor)
+- Driver application + ID/selfie/video verification with real Supabase Storage uploads
+- Admin console with real verification approval flow, suspension, ecosystem analytics
+- Notification & alert system with realtime delivery via Supabase, browser push fallback, drop-in bell+panel UI
+- Auth (email/password + magic link), session-aware nav, RLS-protected data
+- PWA: installable, offline-cached HTML/CSS/JS/images, web push ready
+- Mobile-first, Space Grotesk + Inter, brand-yellow (#FFD000) palette aligned with YUMYUMPO Discovery
 
 ---
 
 ## Tech stack
 
-- **Frontend** — HTML5, Tailwind CSS (CDN), vanilla JavaScript (ES modules)
-- **Backend** — Supabase (PostgreSQL + Auth + Storage)
-- **Hosting** — Static · ready for GitHub Pages or Vercel
+| Layer       | Tech |
+|-------------|------|
+| Frontend    | HTML5, Tailwind CSS (CDN), vanilla ES modules |
+| Backend     | Supabase (PostgreSQL, Auth, Storage, Realtime) |
+| Hosting     | Static — Vercel, GitHub Pages, Netlify, Cloudflare Pages |
+| Offline/PWA | Service worker + Web Manifest |
 
-No build step. Just static files.
-
----
-
-## Project structure
-
-```
-.
-├── index.html               # Homepage
-├── restaurants.html         # Restaurant dashboard
-├── riders.html              # Rider onboarding & application
-├── rider.html               # Individual rider profile
-├── rider-dashboard.html     # Logged-in rider view
-├── marketplace.html         # Browse riders
-├── admin.html               # Operations admin
-├── about.html               # Brand / mission
-├── auth.html                # Sign in
-├── assets/
-│   ├── css/styles.css       # Shared styles + design tokens
-│   └── js/
-│       ├── main.js          # Scroll & UI hooks
-│       ├── supabase.js      # Supabase client init
-│       ├── api.js           # Data API (Supabase or mock fallback)
-│       ├── components.js    # Reusable HTML renderers
-│       └── mock-data.js     # Demo dataset
-├── supabase/
-│   └── schema.sql           # Full DB schema (run this in Supabase)
-├── vercel.json              # Vercel static config
-└── README.md
-```
+No build step. No bundler. Just static files.
 
 ---
 
-## Setup
+## Quick start (production)
 
-### 1. Run locally
-ES modules need to load over HTTP, not `file://`:
+### 1. Create your Supabase project
+1. Sign up at [supabase.com](https://supabase.com) and create a new project.
+2. Open **SQL Editor** → paste `supabase/schema.sql` → **Run**. (Idempotent — safe to re-run.)
+3. In **Storage**, create two buckets:
+   - `verifications` — **private**
+   - `avatars` — **public**
+4. Run the storage policy SQL at the bottom of `schema.sql` (or paste them in **Storage → Policies**).
+5. In **Authentication → Providers**, enable Email (password + magic link).
+6. (Optional) Configure your SMTP under **Authentication → Email Templates** for branded emails.
 
+### 2. Wire the keys
+```bash
+cp assets/js/config.example.js assets/js/config.js
+```
+Open `assets/js/config.js` and paste your project URL + anon key from **Settings → API**. This file is `.gitignored` — never commit production keys.
+
+### 3. Run locally
 ```bash
 npx serve .
 # or
 python -m http.server 5173
 ```
+ES modules need to load over HTTP, not `file://`.
 
-### 2. Connect Supabase
-1. Create a project at [supabase.com](https://supabase.com).
-2. Open the **SQL Editor** → paste `supabase/schema.sql` → run.
-3. (Optional) Create a Storage bucket called `verifications` for ID + selfie uploads.
-4. Add your keys before the module scripts in each HTML page, e.g.:
-
-```html
-<script>
-  window.SUPABASE_CONFIG = {
-    url: "https://YOUR-PROJECT.supabase.co",
-    anonKey: "YOUR_ANON_KEY"
-  };
-</script>
+### 4. Create your first admin
+After you sign up an account, mark it as admin in the Supabase SQL editor:
+```sql
+update auth.users
+set raw_app_meta_data = jsonb_set(coalesce(raw_app_meta_data,'{}'::jsonb), '{is_admin}', 'true')
+where email = 'you@example.com';
 ```
+Then visit `/admin.html` — RLS unlocks admin views via the `public.is_admin()` claim helper.
 
-If `SUPABASE_CONFIG` is missing, the app **automatically falls back to mock data** so the demo still works.
-
-### 3. Deploy
+### 5. Deploy
 
 **Vercel** (recommended):
 ```bash
 vercel
 ```
-`vercel.json` is included — static deploy, no build step.
+`vercel.json` is included — static, no build step.
 
-**GitHub Pages**:
-```bash
-git init
-git add .
-git commit -m "Initial dispatch platform"
-git push
-# Then enable Pages on the main branch in repo settings.
+**GitHub Pages**: push to `main`, enable Pages.
+
+**Cloudflare Pages / Netlify**: drop in the repo as a static site, no build command.
+
+---
+
+## Auth & roles
+
+- **restaurant** — signs up via `/auth.html` (or `/restaurants.html` redirect). Gets a row in `restaurants` keyed by `user_id`.
+- **rider (driver)** — signs up via `/riders.html` with their verification documents in one step. Gets a row in `riders` keyed by `user_id` with `verification_status='pending'`.
+- **admin** — flag via `app_metadata.is_admin = true` on `auth.users`.
+
+Row-Level Security is enforced for everything: restaurants only see their own requests, drivers only see open requests in their own zones (plus their own assigned ones), notifications are recipient-scoped, etc. See `supabase/schema.sql`.
+
+---
+
+## Delivery lifecycle
+
+```
+Restaurant creates request          → status: Available
+   → fan-out notification to all online drivers in matching zone
+Driver accepts                       → status: Accepted   + notify restaurant
+Restaurant contacts driver via WhatsApp / call (off-platform)
+Driver marks picked up               → status: Picked Up
+Driver marks delivered               → status: Delivered  + notify restaurant + bump completed_deliveries
+Restaurant rates the driver          → updates rider.rating via trigger
+```
+
+Restaurant can `Cancel` while status is `Available` or `Accepted`.
+
+---
+
+## File map
+
+```
+.
+├── index.html                  # Homepage
+├── about.html                  # Brand / mission
+├── auth.html                   # Sign in / sign up (email + magic link)
+├── restaurants.html            # Restaurant dashboard (auth-gated)
+├── riders.html                 # Driver application (auth signup + Storage upload)
+├── rider.html                  # Public driver profile
+├── rider-dashboard.html        # Driver dashboard (auth-gated)
+├── marketplace.html            # Public browse drivers
+├── admin.html                  # Admin console (admin-only via app_metadata)
+├── manifest.webmanifest        # PWA manifest
+├── sw.js                       # Service worker (offline cache + web push)
+├── vercel.json
+├── supabase/
+│   └── schema.sql              # Full DDL, RLS, triggers, realtime publication
+└── assets/
+    ├── css/styles.css
+    └── js/
+        ├── config.example.js   # → copy to config.js
+        ├── config.js           # (gitignored) your real keys
+        ├── supabase.js         # Client init
+        ├── auth.js             # signUp / signIn / signOut / requireAuth / getCurrentProfile
+        ├── api.js              # Domain API: riders, requests, preferred, ratings, verifications, files
+        ├── notifications.js    # Pub/sub, realtime, browser push
+        ├── notification-center.js  # Bell + panel UI component
+        ├── session-ui.js       # Signed-in nav badge
+        ├── components.js       # Driver card, toast, modal
+        ├── mock-data.js        # Preview dataset (used only when config missing)
+        └── main.js             # Service worker registration + animations
 ```
 
 ---
@@ -125,33 +151,67 @@ git push
 
 | Table | Purpose |
 |---|---|
-| `restaurants` | Restaurant accounts |
-| `riders` | Independent delivery partners |
-| `rider_zones` | Active delivery zones |
-| `rider_availability` | Status change history |
-| `delivery_requests` | Restaurant → rider requests |
-| `preferred_riders` | Restaurant favorites |
-| `rider_verifications` | ID + selfie + video review pipeline |
-| `rider_ratings` | Operational metrics (punctuality, comms, etc.) |
-| `delivery_activity` | Status changes timeline |
-| `analytics_events` | Ecosystem-wide events |
+| `restaurants`         | Restaurant accounts (FK `user_id` → `auth.users`) |
+| `riders`              | Driver accounts (FK `user_id` → `auth.users`) |
+| `rider_zones`         | Active delivery zones, public read |
+| `rider_availability`  | Status change history (trigger-populated) |
+| `delivery_requests`   | The job lifecycle |
+| `delivery_activity`   | Per-request event log |
+| `preferred_riders`    | Restaurant → driver favorites (preferred_count auto-sync trigger) |
+| `rider_verifications` | ID/selfie/video review queue |
+| `rider_ratings`       | Per-metric scoring; trigger recomputes `riders.rating` |
+| `notifications`       | Recipient-scoped alerts, RLS-protected, in `supabase_realtime` |
+| `analytics_events`    | Ecosystem-wide event firehose |
 
-See `supabase/schema.sql` for full DDL, enums, and RLS policies.
+Triggers automatically:
+- bump `riders.completed_deliveries` when a request reaches `Delivered`
+- recompute `riders.rating` on every rating change
+- keep `riders.preferred_count` in sync with `preferred_riders`
+- log every `riders.availability_status` change to `rider_availability`
+- touch `updated_at` on `restaurants` and `riders` updates
 
 ---
 
-## Design tokens
+## Notifications
+
+19 typed `notification_kind` events covering the full operational loop:
+- Restaurant: `request_accepted`, `rider_arrived`, `delivery_completed`, `no_response`, `preferred_online`, `rider_suspended`, etc.
+- Driver: `request_new`, `request_cancelled`, `request_expired`, `verification_approved`, `verification_rejected`, `new_restaurant_nearby`, etc.
+
+**Delivery channels:**
+1. **In-app** — bell + panel UI on every dashboard, unread counter, filters
+2. **Realtime** — Supabase Realtime push to currently-open tabs
+3. **Browser push** — Notification API, only fires when the tab is unfocused
+4. **Web Push** — service worker `push` handler is wired (point your push provider at it)
+
+---
+
+## Design system
 
 | Token | Value |
 |---|---|
-| Cream | `#FBF7F0` |
-| Warm | `#F5EFE4` |
-| Beige | `#E9DFCB` |
-| Charcoal | `#161412` |
-| Ember (accent) | `#E5631F` |
-| Dust | `#A89F90` |
-| Display font | Fraunces |
-| Body font | Inter |
+| Brand yellow | `#FFD000` |
+| Yellow dark  | `#E6BB00` |
+| Brand black  | `#111111` |
+| Background   | `#FFFFFF` |
+| Surface      | `#F9F9F9` |
+| Display font | Space Grotesk (400–800) |
+| Body font    | Inter (300–700) |
+
+Aligned 1:1 with the YUMYUMPO Discovery palette so the two products feel like one network.
+
+---
+
+## Going live checklist
+
+- [ ] Supabase project created
+- [ ] `schema.sql` executed
+- [ ] Storage buckets `verifications` (private) and `avatars` (public) created + policies applied
+- [ ] Email auth enabled, SMTP configured (or default Supabase email)
+- [ ] `assets/js/config.js` filled in and **not** committed
+- [ ] At least one admin user flagged via `app_metadata.is_admin`
+- [ ] Custom domain pointed at your host with HTTPS
+- [ ] (Optional) Push provider wired to `sw.js` for cross-device push
 
 ---
 

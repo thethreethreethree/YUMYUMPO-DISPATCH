@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Rider Profile · YUMYUMPO Dispatch</title>
+<title>Driver Profile · YUMYUMPO Dispatch</title>
+<link rel="manifest" href="./manifest.webmanifest"/>
+<meta name="theme-color" content="#FFD000"/>
+<script src="./assets/js/config.js" onerror="window.__noConfig=true"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./assets/css/styles.css"/>
@@ -34,16 +37,21 @@
 <main id="profile" class="pt-28 pb-20 max-w-5xl mx-auto px-5 md:px-8"></main>
 
 <script type="module">
-import { fetchRider, togglePreferred, getPreferred } from "./assets/js/api.js";
+import { fetchRider, togglePreferred, fetchPreferredRiderIds, getRestaurantByUser } from "./assets/js/api.js";
+import { getUser } from "./assets/js/auth.js";
 import { toast } from "./assets/js/components.js";
 
-const id = new URLSearchParams(location.search).get("id") || "r1";
+const id = new URLSearchParams(location.search).get("id");
+if (!id) { location.href = "./marketplace.html"; throw new Error("no id"); }
 const r = await fetchRider(id);
+
+let viewerRestaurantId = null;
+try { const u = await getUser(); if (u) { const rs = await getRestaurantByUser(u.id); viewerRestaurantId = rs?.id || null; } } catch {}
 if (!r) {
   document.getElementById("profile").innerHTML = `<div class="text-center py-20"><div class="font-display text-3xl">Rider not found</div><a href="./marketplace.html" class="btn-primary mt-6">Back to marketplace</a></div>`;
   throw new Error("not found");
 }
-const pref = getPreferred().includes(r.id);
+const pref = viewerRestaurantId ? (await fetchPreferredRiderIds(viewerRestaurantId)).includes(r.id) : false;
 const stars = "★".repeat(Math.round(r.rating)) + "☆".repeat(5 - Math.round(r.rating));
 
 document.getElementById("profile").innerHTML = `
@@ -102,9 +110,12 @@ document.getElementById("profile").innerHTML = `
 `;
 
 document.getElementById("favBtn").addEventListener("click", async () => {
-  const list = await togglePreferred(null, r.id);
-  toast(list.includes(r.id) ? "Saved as preferred" : "Removed");
-  setTimeout(() => location.reload(), 600);
+  if (!viewerRestaurantId) { location.href = "./auth.html?next=" + encodeURIComponent(location.pathname + location.search); return; }
+  try {
+    const list = await togglePreferred(viewerRestaurantId, r.id);
+    toast(list.includes(r.id) ? "Saved as preferred" : "Removed");
+    setTimeout(() => location.reload(), 600);
+  } catch (e) { toast(e.message); }
 });
 </script>
 </body>

@@ -64,17 +64,16 @@ export async function markAllRead() {
 
 export async function pushNotification(n) {
   // n: { recipient_type, recipient_id, kind, title, body?, request_id?, payload? }
-  const record = {
-    id: cryptoRandom(),
-    created_at: new Date().toISOString(),
-    read_at: null,
-    ...n,
-  };
   if (HAS_SUPABASE) {
-    const { data, error } = await supabase.from("notifications").insert(record).select().single();
+    const { data, error } = await supabase.from("notifications").insert({
+      recipient_type: n.recipient_type, recipient_id: n.recipient_id,
+      kind: n.kind, title: n.title, body: n.body || null,
+      request_id: n.request_id || null, payload: n.payload || null,
+    }).select().single();
     if (error) throw error;
     return data;
   }
+  const record = { id: cryptoRandom(), created_at: new Date().toISOString(), read_at: null, ...n };
   const all = readStore();
   all.unshift(record);
   writeStore(all.slice(0, 300));
