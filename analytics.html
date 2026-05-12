@@ -43,10 +43,16 @@
       <h1 class="font-display text-3xl md:text-4xl font-black mt-1" id="restName">—</h1>
       <p class="text-sm text-gray-600 mt-2">Operational metrics from your last 90 days.</p>
     </div>
-    <div class="flex gap-2 flex-wrap" id="rangeFilters">
-      <button type="button" class="tab"        data-range="7">7d</button>
-      <button type="button" class="tab active" data-range="30">30d</button>
-      <button type="button" class="tab"        data-range="90">90d</button>
+    <div class="flex items-center gap-2 flex-wrap">
+      <div class="flex gap-2 flex-wrap" id="rangeFilters">
+        <button type="button" class="tab"        data-range="7">7d</button>
+        <button type="button" class="tab active" data-range="30">30d</button>
+        <button type="button" class="tab"        data-range="90">90d</button>
+      </div>
+      <button type="button" id="exportBtn" class="btn-ghost !py-2 !px-4 !text-sm" title="Download the current view as CSV">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+        Export CSV
+      </button>
     </div>
   </header>
 
@@ -103,7 +109,7 @@
 import { isConfigured, requireAuth } from "./assets/js/auth.js";
 import { renderSessionBadge, bindAuthRefresh } from "./assets/js/session-ui.js";
 import { fetchRestaurantHistory } from "./assets/js/api.js";
-import { humanizeError, esc, attr, safeImg, toastError } from "./assets/js/components.js";
+import { humanizeError, esc, attr, safeImg, toast, toastError } from "./assets/js/components.js";
 
 renderSessionBadge(document.getElementById("sessionSlot"));
 bindAuthRefresh(document.getElementById("sessionSlot"));
@@ -274,6 +280,53 @@ document.querySelectorAll("#rangeFilters [data-range]").forEach(b => {
     rangeDays = +b.dataset.range;
     recompute();
   });
+});
+
+// CSV export — flat sheet of every request in the current range. Excel-safe:
+// fields with commas/quotes/newlines get RFC-4180 quoting; the file leads
+// with a UTF-8 BOM so Excel reads non-ASCII (e.g. ₱) correctly.
+function csvCell(v) {
+  if (v == null) return "";
+  const s = String(v);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+function minutes(a, b) {
+  if (!a || !b) return "";
+  const m = (new Date(b).getTime() - new Date(a).getTime()) / 60000;
+  return Number.isFinite(m) && m >= 0 ? m.toFixed(1) : "";
+}
+document.getElementById("exportBtn").addEventListener("click", () => {
+  const cutoff = Date.now() - rangeDays * 86400000;
+  const rows = allRows.filter(r => new Date(r.created_at || 0).getTime() >= cutoff);
+  if (!rows.length) { toast("Nothing to export in this range yet."); return; }
+
+  const headers = [
+    "request_id","created_at","zone","pickup","dropoff","status",
+    "driver_name","driver_vehicle","driver_rating",
+    "accepted_at","picked_up_at","delivered_at","cancelled_at",
+    "time_to_accept_min","pickup_to_delivery_min","notes",
+  ];
+  const lines = [headers.join(",")];
+  for (const r of rows) {
+    lines.push([
+      r.id, r.created_at, r.zone, r.pickup, r.dropoff, r.status,
+      r.riders?.name || "", r.riders?.vehicle_type || "", r.riders?.rating ?? "",
+      r.accepted_at || "", r.picked_up_at || "", r.delivered_at || "", r.cancelled_at || "",
+      minutes(r.created_at, r.accepted_at),
+      minutes(r.accepted_at, r.delivered_at),
+      r.notes || "",
+    ].map(csvCell).join(","));
+  }
+  const csv = "﻿" + lines.join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  const stamp = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `dispatch-analytics-${stamp}-${rangeDays}d.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast(`Exported ${rows.length} request${rows.length === 1 ? "" : "s"}.`);
 });
 
 (async () => {

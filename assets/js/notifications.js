@@ -140,10 +140,26 @@ export async function notifyRequestCreated(req, riders, {
 
   // Schedule the open wave. We re-check the request's status at fire-time
   // so an Accepted job never disturbs the rest of the zone.
+  let fired = false;
+  let timer = null;
+  const triggerOpenWave = async () => {
+    if (fired) return false;
+    fired = true;
+    if (timer) { clearTimeout(timer); timer = null; }
+    if (!rest.length) return false;
+    await fanoutOpenWave(req, rest).catch(err => { console.warn("open wave failed:", err); });
+    return true;
+  };
   if (rest.length) {
-    setTimeout(() => fanoutOpenWave(req, rest).catch(() => {}), openFanoutDelayMs);
+    timer = setTimeout(() => triggerOpenWave(), openFanoutDelayMs);
   }
-  return { preferredCount: preferred.length, restCount: rest.length, opened: false };
+  return {
+    preferredCount: preferred.length,
+    restCount: rest.length,
+    opened: false,
+    triggerOpenWave,
+    delayMs: openFanoutDelayMs,
+  };
 }
 
 async function fanoutOpenWave(req, restRiders) {

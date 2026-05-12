@@ -405,7 +405,7 @@ function openRequest() {
 
       closeModal();
       if (outcome.preferredCount && !outcome.opened) {
-        toast(`Notified ${outcome.preferredCount} preferred driver${outcome.preferredCount === 1 ? "" : "s"} first. Opens to the rest in 30s.`);
+        showPreferredWaveBanner(outcome, created);
       } else if (outcome.restCount) {
         toast(`Request sent to ${outcome.restCount} driver${outcome.restCount === 1 ? "" : "s"} in ${created.zone}.`);
       } else {
@@ -420,6 +420,63 @@ function openRequest() {
 }
 document.getElementById("newRequestBtn").addEventListener("click", openRequest);
 document.getElementById("mNewReq").addEventListener("click", openRequest);
+
+// Floating banner shown while a preferred-wave is waiting to open up to the
+// rest of the zone. Live countdown + manual "Notify everyone now" override.
+function showPreferredWaveBanner(outcome, request) {
+  // Tear down any previous instance so multiple back-to-back posts don't stack.
+  document.querySelector(".wave-banner")?.remove();
+
+  const el = document.createElement("div");
+  el.className = "wave-banner";
+  el.innerHTML = `
+    <div class="wave-icon">🟡</div>
+    <div class="wave-body">
+      <div class="wave-title">Notified <b>${outcome.preferredCount}</b> preferred driver${outcome.preferredCount === 1 ? "" : "s"} first.</div>
+      <div class="wave-sub">Opening to ${outcome.restCount} other driver${outcome.restCount === 1 ? "" : "s"} in <b class="wave-count">${Math.round(outcome.delayMs / 1000)}</b>s in ${esc(request.zone)}.</div>
+    </div>
+    <div class="wave-actions">
+      <button type="button" class="btn-primary !py-2 !px-4 !text-xs wave-now">Notify everyone now</button>
+      <button type="button" class="wave-close" aria-label="Dismiss">✕</button>
+    </div>`;
+  document.body.appendChild(el);
+
+  const countEl = el.querySelector(".wave-count");
+  const endAt = Date.now() + outcome.delayMs;
+  let tick = setInterval(() => {
+    const s = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
+    countEl.textContent = s;
+    if (s <= 0) finish(false);
+  }, 250);
+
+  function finish(manual) {
+    clearInterval(tick);
+    if (!manual) {
+      // Auto-fired by the scheduled timer — banner gets a friendly state.
+      el.classList.add("done");
+      el.querySelector(".wave-sub").innerHTML = `Now visible to every driver in ${esc(request.zone)}.`;
+      el.querySelector(".wave-now")?.remove();
+      setTimeout(() => el.remove(), 3500);
+    } else {
+      el.remove();
+    }
+  }
+
+  el.querySelector(".wave-now").addEventListener("click", async () => {
+    el.querySelector(".wave-now").disabled = true;
+    el.querySelector(".wave-now").textContent = "Sending…";
+    try {
+      const sent = await outcome.triggerOpenWave();
+      if (sent) toast(`Opened to ${outcome.restCount} more driver${outcome.restCount === 1 ? "" : "s"}.`);
+      finish(true);
+    } catch (ex) {
+      toastError(ex);
+      el.querySelector(".wave-now").disabled = false;
+      el.querySelector(".wave-now").textContent = "Notify everyone now";
+    }
+  });
+  el.querySelector(".wave-close").addEventListener("click", () => finish(true));
+}
 
 // === Edit restaurant profile =============================================
 function openEditRestaurant() {
