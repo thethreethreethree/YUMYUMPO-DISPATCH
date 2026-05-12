@@ -4,5 +4,7 @@
 .env.local
 node_modules
 package-lock.json
-# Local Supabase keys — never commit
-assets/js/config.js
+# Note: assets/js/config.js is now COMMITTED so static deploys (GitHub Pages,
+# Vercel, etc.) ship the runtime Supabase config. The anon key is safe to
+# expose publicly — RLS does the real protection. Never commit the
+# service_role key.
