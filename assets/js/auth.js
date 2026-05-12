@@ -89,6 +89,14 @@ export function onAuthChange(cb) {
   if (!HAS_SUPABASE) return () => {};
   const { data } = supabase.auth.onAuthStateChange((event, session) => {
     cachedProfile = null;
+    // Keep error-monitoring context in sync with the session.
+    import("./monitoring.js").then(({ setMonitoringUser }) => {
+      setMonitoringUser(session?.user ? {
+        id: session.user.id,
+        email: session.user.email,
+        role: session.user.user_metadata?.role || null,
+      } : null);
+    }).catch(() => {});
     cb(session, event);
   });
   return () => data.subscription.unsubscribe();

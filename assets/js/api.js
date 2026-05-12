@@ -24,22 +24,31 @@ export async function getZones() {
 
 // -------------------- RIDERS -----------------------------------------
 export async function fetchRiders(filters = {}) {
+  const nameQuery = (filters.nameQuery || "").trim();
   if (isProd()) {
     let q = supabase.from("riders").select("*").order("rating", { ascending: false });
     if (filters.status)       q = q.eq("availability_status", filters.status);
     if (filters.vehicle)      q = q.eq("vehicle_type", filters.vehicle);
     if (filters.zone)         q = q.contains("delivery_zones", [filters.zone]);
     if (filters.verifiedOnly) q = q.eq("verification_status", "verified");
+    if (nameQuery) {
+      // Postgres ilike with sanitised wildcards. Strip % and _ from user input
+      // so they can't broaden their own query, then wrap both sides.
+      const safe = nameQuery.replace(/[%_\\]/g, "\\$&");
+      q = q.ilike("name", `%${safe}%`);
+    }
     if (filters.limit)        q = q.limit(filters.limit);
     const { data, error } = await q;
     if (error) throw error;
     return data.map(normalizeRiderRow);
   }
+  const needle = nameQuery.toLowerCase();
   return RIDERS.filter(r =>
     (!filters.status  || r.status === filters.status) &&
     (!filters.vehicle || r.vehicle === filters.vehicle) &&
     (!filters.zone    || r.zones.includes(filters.zone)) &&
-    (!filters.verifiedOnly || r.verified)
+    (!filters.verifiedOnly || r.verified) &&
+    (!needle || r.name.toLowerCase().includes(needle))
   );
 }
 
@@ -198,12 +207,62 @@ async function logActivity(request_id, event, metadata) {
   try { await supabase.from("delivery_activity").insert({ request_id, event, metadata: metadata || null }); } catch {}
 }
 
+// Restaurant activity feed — every request this restaurant has issued, joined
+// with the rider's name + photo. Used by analytics.html for aggregation and
+// by the dashboard's recent-requests table.
+export async function fetchRestaurantHistory(restaurantId, { sinceDays = 90, limit = 500 } = {}) {
+  if (!isProd()) {
+    return REQUESTS.filter(r => (r.restaurant_id || r.restaurant) === restaurantId).slice(0, limit);
+  }
+  const since = new Date(Date.now() - sinceDays * 86400000).toISOString();
+  const { data, error } = await supabase
+    .from("delivery_requests")
+    .select("*, riders(id, name, profile_photo, rating, vehicle_type)")
+    .eq("restaurant_id", restaurantId)
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data;
+}
+
+// Driver activity history — every delivery assigned to this rider, newest first.
+// Includes the restaurant name + the rider's rating for that job (if any).
+// Status filter is optional; pass e.g. ['Delivered','Cancelled'] to see closed
+// jobs only.
+export async function fetchRiderHistory(riderId, { statuses, limit = 50 } = {}) {
+  if (!isProd()) {
+    let rows = REQUESTS.filter(r => (r.rider_id || r.rider) === riderId);
+    if (statuses?.length) rows = rows.filter(r => statuses.includes(r.status));
+    return rows.slice(0, limit);
+  }
+  let q = supabase.from("delivery_requests")
+    .select("*, restaurants(name)")
+    .eq("rider_id", riderId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (statuses?.length) q = q.in("status", statuses);
+  const { data, error } = await q;
+  if (error) throw error;
+  return data;
+}
+
 // -------------------- PREFERRED RIDERS -------------------------------
 export async function fetchPreferredRiderIds(restaurantId) {
   if (!isProd()) return JSON.parse(localStorage.getItem("preferred_demo") || "[]");
   const { data, error } = await supabase.from("preferred_riders").select("rider_id").eq("restaurant_id", restaurantId);
   if (error) throw error;
   return data.map(r => r.rider_id);
+}
+
+// Return the set of restaurant_ids that have saved this rider as preferred.
+// Used by the driver dashboard to badge "first dibs" requests.
+export async function fetchRestaurantsThatPreferMe(riderId) {
+  if (!isProd()) return new Set();
+  const { data, error } = await supabase.from("preferred_riders")
+    .select("restaurant_id").eq("rider_id", riderId);
+  if (error) throw error;
+  return new Set(data.map(r => r.restaurant_id));
 }
 
 export async function togglePreferred(restaurantId, riderId) {
@@ -274,6 +333,66 @@ export async function decideVerification(verificationId, riderId, decision) {
   const { error: e2 } = await supabase.from("riders")
     .update({ verification_status: status }).eq("id", riderId);
   if (e2) throw e2;
+  return true;
+}
+
+// -------------------- ACCOUNT & PREFERENCES --------------------------
+// Notification prefs are stored as `{ muted: [kind, ...] }` on the
+// per-role profile row. We expose them through these helpers so the
+// settings UI and the notification center share one source of truth.
+
+export async function getNotificationPrefs(role, profileId) {
+  if (!isProd()) {
+    return JSON.parse(localStorage.getItem("prefs_" + role + "_" + profileId) || "{}");
+  }
+  const table = role === "rider" ? "riders" : "restaurants";
+  const { data, error } = await supabase.from(table).select("notification_prefs").eq("id", profileId).maybeSingle();
+  if (error) throw error;
+  return data?.notification_prefs || {};
+}
+
+export async function setNotificationPrefs(role, profileId, prefs) {
+  if (!isProd()) {
+    localStorage.setItem("prefs_" + role + "_" + profileId, JSON.stringify(prefs));
+    return prefs;
+  }
+  const table = role === "rider" ? "riders" : "restaurants";
+  const { data, error } = await supabase.from(table)
+    .update({ notification_prefs: prefs }).eq("id", profileId).select("notification_prefs").single();
+  if (error) throw error;
+  return data.notification_prefs;
+}
+
+// Wrappers around supabase.auth so the settings UI doesn't import the
+// supabase client directly.
+export async function changeEmail(newEmail) {
+  if (!isProd()) throw new Error("Email changes need a connected Supabase project.");
+  const { error } = await supabase.auth.updateUser({ email: newEmail });
+  if (error) throw error;
+  return true;
+}
+
+// Soft-delete: suspends the profile so the account is unreachable. A full
+// hard-delete (auth.users row + cascade) requires a server-side function;
+// flag this as a TODO and surface a clear message in the UI.
+export async function deactivateAccount(role, profileId) {
+  if (!isProd()) {
+    localStorage.setItem("deactivated_" + role + "_" + profileId, "1");
+    return true;
+  }
+  const table = role === "rider" ? "riders" : "restaurants";
+  const patch = role === "rider"
+    ? { verification_status: "suspended", availability_status: "offline" }
+    : { /* restaurants table has no status column — soft delete by clearing the name + email */ };
+  if (role === "restaurant") {
+    // No status column; just blank out PII so the profile becomes invisible.
+    patch.name = "(Deactivated)";
+    patch.contact_phone = null;
+    patch.whatsapp = null;
+  }
+  const { error } = await supabase.from(table).update(patch).eq("id", profileId);
+  if (error) throw error;
+  await supabase.auth.signOut();
   return true;
 }
 

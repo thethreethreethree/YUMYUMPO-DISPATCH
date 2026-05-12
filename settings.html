@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Settings · YUMYUMPO Dispatch</title>
+<link rel="icon" type="image/svg+xml" href="./assets/favicon.svg"/>
+<link rel="apple-touch-icon" href="./assets/favicon.svg"/>
+<meta name="theme-color" content="#FFD000"/>
+<meta name="robots" content="noindex,nofollow"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/styles.css"/>
+<script src="./assets/js/config.js" onerror="window.__noConfig=true"></script>
+</head>
+<body class="bg-gray-50 text-brand-black font-sans">
+
+<header class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-white/85 border-b border-gray-200">
+  <div class="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
+    <a href="./index.html" class="flex items-center gap-2">
+      <span class="w-9 h-9 rounded-2xl bg-brand-yellow text-brand-black grid place-items-center font-display font-black">Y</span>
+      <span class="font-display font-bold text-lg">Settings</span>
+    </a>
+    <div id="sessionSlot"></div>
+  </div>
+</header>
+
+<main class="pt-24 pb-24 max-w-3xl mx-auto px-4 md:px-8">
+
+  <div id="banner"></div>
+
+  <header class="mb-8">
+    <div class="text-xs uppercase tracking-widest text-gray-600 font-bold">Your account</div>
+    <h1 class="font-display text-3xl md:text-4xl font-black mt-1">Settings</h1>
+    <p class="text-sm text-gray-600 mt-2" id="signedInAs">—</p>
+  </header>
+
+  <!-- Account -->
+  <section class="bg-white rounded-2xl border border-gray-200 p-6 md:p-8 mb-6">
+    <h2 class="font-display text-xl font-bold mb-1">Account</h2>
+    <p class="text-sm text-gray-600 mb-6">Email and password. These apply to your sign-in only.</p>
+
+    <form id="emailForm" class="grid sm:grid-cols-[1fr_auto] gap-3 items-end mb-5">
+      <div>
+        <label class="text-xs font-bold text-gray-600">Email address</label>
+        <input class="field mt-1" type="email" name="email" id="emailInput" required autocomplete="email"/>
+      </div>
+      <button class="btn-primary !py-3" type="submit" id="emailSubmit">Change email</button>
+    </form>
+    <p class="text-xs text-gray-600 -mt-2 mb-6">We'll send a confirmation to the new address before the change takes effect.</p>
+
+    <form id="passwordForm" class="grid sm:grid-cols-2 gap-3">
+      <div class="sm:col-span-2"><div class="text-xs font-bold text-gray-600 mb-2">Change password</div></div>
+      <div>
+        <label class="text-xs font-bold text-gray-600">New password</label>
+        <input class="field mt-1" type="password" name="newPassword" minlength="8" required autocomplete="new-password" placeholder="At least 8 characters"/>
+      </div>
+      <div>
+        <label class="text-xs font-bold text-gray-600">Confirm new password</label>
+        <input class="field mt-1" type="password" name="confirmPassword" minlength="8" required autocomplete="new-password"/>
+      </div>
+      <div class="sm:col-span-2 flex justify-end">
+        <button class="btn-primary" type="submit" id="passwordSubmit">Update password</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Notifications -->
+  <section class="bg-white rounded-2xl border border-gray-200 p-6 md:p-8 mb-6">
+    <h2 class="font-display text-xl font-bold mb-1">Notifications</h2>
+    <p class="text-sm text-gray-600 mb-6">Mute the alerts you don't want. Muted notifications still appear in your history but won't trigger the bell badge, in-app toast, or browser push.</p>
+    <div id="prefList" class="space-y-2"></div>
+  </section>
+
+  <!-- Profile shortcut (role-aware) -->
+  <section class="bg-white rounded-2xl border border-gray-200 p-6 md:p-8 mb-6">
+    <h2 class="font-display text-xl font-bold mb-1">Profile</h2>
+    <p class="text-sm text-gray-600 mb-4" id="profileBlurb">Manage your visible profile, zones, and pricing.</p>
+    <a id="profileLink" class="btn-ghost inline-flex" href="#">Open profile editor</a>
+  </section>
+
+  <!-- Danger zone -->
+  <section class="bg-white rounded-2xl border-2 border-red-200 p-6 md:p-8">
+    <h2 class="font-display text-xl font-bold text-red-700 mb-1">Danger zone</h2>
+    <p class="text-sm text-gray-600 mb-5">Deactivate your account. This signs you out and hides your profile from restaurants/drivers. To permanently delete your data, email <a class="underline font-bold" href="mailto:support@yumyumpo.ph?subject=Account%20deletion">support@yumyumpo.ph</a>.</p>
+    <button id="deactivateBtn" class="btn-ghost border-red-300 text-red-700 hover:bg-red-50" type="button">Deactivate account</button>
+  </section>
+</main>
+
+<script type="module">
+import { isConfigured, requireAuth, signOut, updatePassword, getUser } from "./assets/js/auth.js";
+import { renderSessionBadge, bindAuthRefresh } from "./assets/js/session-ui.js";
+import { getNotificationPrefs, setNotificationPrefs, changeEmail, deactivateAccount } from "./assets/js/api.js";
+import { humanizeError, toast } from "./assets/js/components.js";
+import { KIND_META } from "./assets/js/notifications.js";
+
+renderSessionBadge(document.getElementById("sessionSlot"));
+bindAuthRefresh(document.getElementById("sessionSlot"));
+
+const banner = document.getElementById("banner");
+function showBanner(html, tone = "info") {
+  const colors = {
+    info:    "bg-yellow-light border-yellow-dark text-brand-black",
+    success: "bg-green-50 border-green-300 text-green-900",
+    error:   "bg-red-50 border-red-300 text-red-700",
+  };
+  banner.innerHTML = `<div class="rounded-2xl border-2 p-4 mb-6 text-sm font-semibold ${colors[tone]}">${html}</div>`;
+}
+
+// Auth gate — settings is only useful when signed in.
+let me, profileTable, profileLink, profileBlurb;
+if (isConfigured()) {
+  me = await requireAuth();
+  if (!me) throw new Error("redirecting");
+} else {
+  showBanner("⚠ Supabase isn't configured. <a href='./README.md' class='underline'>See README</a>.", "error");
+  throw new Error("not configured");
+}
+
+const role = me.role;
+const profile = me.profile;
+const user = await getUser();
+document.getElementById("emailInput").value = user?.email || "";
+document.getElementById("signedInAs").textContent = `Signed in as ${profile?.name || user?.email} (${role}).`;
+
+// Profile-section role-aware copy + link.
+const profileLinkEl = document.getElementById("profileLink");
+const profileBlurbEl = document.getElementById("profileBlurb");
+if (role === "rider") {
+  profileBlurbEl.textContent = "Edit your photo, vehicle, delivery zones, and pricing from the driver dashboard.";
+  profileLinkEl.href = "./rider-dashboard.html";
+  profileLinkEl.textContent = "Open driver dashboard →";
+} else if (role === "restaurant") {
+  profileBlurbEl.textContent = "Edit your restaurant name, phone, WhatsApp, and default zone from the restaurant dashboard.";
+  profileLinkEl.href = "./restaurants.html";
+  profileLinkEl.textContent = "Open restaurant dashboard →";
+} else {
+  profileBlurbEl.textContent = "Admin accounts manage the ecosystem from the admin console.";
+  profileLinkEl.href = "./admin.html";
+  profileLinkEl.textContent = "Open admin console →";
+}
+
+// ── Change email ──────────────────────────────────────────────────────
+document.getElementById("emailForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const newEmail = document.getElementById("emailInput").value.trim();
+  if (!newEmail || newEmail === user?.email) {
+    showBanner("Enter a new email address — that's the same one you have now.", "info"); return;
+  }
+  const btn = document.getElementById("emailSubmit");
+  const orig = btn.textContent; btn.disabled = true; btn.textContent = "Sending…";
+  try {
+    await changeEmail(newEmail);
+    showBanner(`✓ Confirmation sent to <b>${newEmail}</b>. Click the link in that email to finish the change. Your old email stays active until you confirm.`, "success");
+  } catch (ex) {
+    showBanner(humanizeError(ex), "error");
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+});
+
+// ── Change password ───────────────────────────────────────────────────
+document.getElementById("passwordForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const np = (f.get("newPassword") || "").toString();
+  const cp = (f.get("confirmPassword") || "").toString();
+  if (np.length < 8) { showBanner("Password must be at least 8 characters.", "error"); return; }
+  if (np !== cp)     { showBanner("Passwords don't match.", "error"); return; }
+  const btn = document.getElementById("passwordSubmit");
+  const orig = btn.textContent; btn.disabled = true; btn.textContent = "Updating…";
+  try {
+    await updatePassword(np);
+    showBanner("✓ Password updated. Use your new password next time you sign in.", "success");
+    e.target.reset();
+  } catch (ex) {
+    showBanner(humanizeError(ex), "error");
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+});
+
+// ── Notification preferences ──────────────────────────────────────────
+// Per-role visible kinds — we only surface notifications a role can actually
+// receive, so a restaurant doesn't see "request_new" (rider-only) in their list.
+const RIDER_KINDS = [
+  "request_new", "request_cancelled", "request_expired",
+  "verification_approved", "verification_rejected", "account_warning",
+  "profile_incomplete", "new_restaurant_nearby", "system",
+];
+const RESTAURANT_KINDS = [
+  "request_accepted", "request_declined", "rider_arrived", "delivery_completed",
+  "no_response", "preferred_online", "preferred_unavailable",
+  "rider_zone_changed", "rider_suspended", "new_rider_nearby", "system",
+];
+const ADMIN_KINDS = Object.keys(KIND_META);
+
+const kindsForRole = role === "rider" ? RIDER_KINDS
+                    : role === "restaurant" ? RESTAURANT_KINDS
+                    : ADMIN_KINDS;
+
+const prefList = document.getElementById("prefList");
+let prefs = { muted: [] };
+if (role !== "admin") {
+  try { prefs = await getNotificationPrefs(role, profile.id); if (!prefs.muted) prefs.muted = []; }
+  catch (ex) { showBanner("Couldn't load your notification preferences. " + humanizeError(ex), "error"); }
+}
+
+function renderPrefs() {
+  if (role === "admin") {
+    prefList.innerHTML = `<p class="text-sm text-gray-600">Admin accounts always receive system notifications.</p>`;
+    return;
+  }
+  prefList.innerHTML = kindsForRole.map(k => {
+    const meta = KIND_META[k] || { icon: "🔔", label: k };
+    const muted = prefs.muted.includes(k);
+    return `<label class="flex items-center justify-between gap-4 py-3 border-b border-gray-100 cursor-pointer">
+      <span class="flex items-center gap-3 min-w-0">
+        <span class="text-xl shrink-0" aria-hidden="true">${meta.icon}</span>
+        <span class="min-w-0">
+          <span class="block font-semibold text-sm">${meta.label}</span>
+          <span class="block text-xs text-gray-600 truncate">${kindHint(k)}</span>
+        </span>
+      </span>
+      <input type="checkbox" data-kind="${k}" class="pref-toggle accent-brand-yellow w-5 h-5 shrink-0" ${muted ? "" : "checked"}/>
+    </label>`;
+  }).join("");
+  prefList.querySelectorAll(".pref-toggle").forEach(cb => {
+    cb.addEventListener("change", async () => {
+      const kind = cb.dataset.kind;
+      const enabled = cb.checked;
+      const muted = new Set(prefs.muted);
+      if (enabled) muted.delete(kind); else muted.add(kind);
+      prefs.muted = [...muted];
+      try {
+        await setNotificationPrefs(role, profile.id, prefs);
+        toast(enabled ? "Notifications on for: " + kind.replace(/_/g, " ") : "Muted: " + kind.replace(/_/g, " "));
+      } catch (ex) {
+        cb.checked = !enabled; // revert
+        showBanner(humanizeError(ex), "error");
+      }
+    });
+  });
+}
+function kindHint(k) {
+  const hints = {
+    request_new:           "New delivery requests in your zones.",
+    request_accepted:      "A driver accepted your request.",
+    request_cancelled:     "A restaurant cancelled the run.",
+    request_expired:       "Requests that timed out before you accepted.",
+    request_declined:      "A driver passed on your request.",
+    rider_arrived:         "Driver reached pickup.",
+    delivery_completed:    "Delivery marked complete.",
+    no_response:           "No driver picked up your request.",
+    preferred_online:      "A driver you saved came online.",
+    preferred_unavailable: "A preferred driver went offline.",
+    rider_zone_changed:    "A preferred driver moved zones.",
+    rider_suspended:       "A driver in your network was suspended.",
+    verification_approved: "Your verification was approved.",
+    verification_rejected: "Verification was rejected; you can resubmit.",
+    account_warning:       "Important account messages.",
+    profile_incomplete:    "Reminders to finish your profile.",
+    new_rider_nearby:      "A new driver joined your area.",
+    new_restaurant_nearby: "A new restaurant joined your area.",
+    system:                "Platform updates and announcements.",
+  };
+  return hints[k] || "";
+}
+renderPrefs();
+
+// ── Deactivate ────────────────────────────────────────────────────────
+document.getElementById("deactivateBtn").addEventListener("click", async () => {
+  if (role === "admin") { showBanner("Admin accounts can't be deactivated from here.", "info"); return; }
+  if (!confirm("Deactivate your account? Restaurants/drivers will no longer find you, and you'll be signed out. You can email support to fully delete your data later.")) return;
+  try {
+    await deactivateAccount(role, profile.id);
+    location.href = "./index.html";
+  } catch (ex) {
+    showBanner(humanizeError(ex), "error");
+  }
+});
+</script>
+
+<script type="module" src="./assets/js/main.js"></script>
+</body>
+</html>

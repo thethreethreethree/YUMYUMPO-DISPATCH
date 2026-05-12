@@ -57,6 +57,7 @@ create table if not exists restaurants (
   updated_at timestamptz default now()
 );
 alter table restaurants add column if not exists email text;
+alter table restaurants add column if not exists notification_prefs jsonb default '{}'::jsonb;
 
 create table if not exists riders (
   id uuid primary key default gen_random_uuid(),
@@ -85,6 +86,7 @@ create table if not exists riders (
 alter table riders add column if not exists email text;
 alter table riders alter column phone    drop not null;
 alter table riders alter column whatsapp drop not null;
+alter table riders add column if not exists notification_prefs jsonb default '{}'::jsonb;
 create index if not exists riders_status_idx on riders (availability_status);
 create index if not exists riders_zones_idx  on riders using gin (delivery_zones);
 create index if not exists riders_verify_idx on riders (verification_status);
@@ -459,12 +461,19 @@ create trigger tg_guard_delivery_request_update
   before update on delivery_requests
   for each row execute function public.guard_delivery_request_update();
 
--- Preferred riders: restaurant-scoped.
-drop policy if exists "Preferred self read"   on preferred_riders;
-drop policy if exists "Preferred self write"  on preferred_riders;
-drop policy if exists "Preferred self delete" on preferred_riders;
+-- Preferred riders: restaurant-scoped writes; both sides can read their
+-- side of the relationship (restaurants see their preferred drivers,
+-- drivers see which restaurants have saved them — drives the "first dibs"
+-- UX on the driver dashboard).
+drop policy if exists "Preferred self read"     on preferred_riders;
+drop policy if exists "Preferred rider read"    on preferred_riders;
+drop policy if exists "Preferred self write"    on preferred_riders;
+drop policy if exists "Preferred self delete"   on preferred_riders;
 create policy "Preferred self read" on preferred_riders for select using (
   exists (select 1 from restaurants rs where rs.id = restaurant_id and rs.user_id = auth.uid())
+);
+create policy "Preferred rider read" on preferred_riders for select using (
+  exists (select 1 from riders rd where rd.id = rider_id and rd.user_id = auth.uid())
 );
 create policy "Preferred self write" on preferred_riders for insert with check (
   exists (select 1 from restaurants rs where rs.id = restaurant_id and rs.user_id = auth.uid())

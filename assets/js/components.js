@@ -97,8 +97,20 @@ export function riderCard(r, { preferred = false } = {}) {
 }
 
 // ----- Empty state ---------------------------------------------------------
-export function emptyState(title, sub) {
-  return `<div class="text-center py-20 col-span-full"><div class="font-display text-2xl font-bold">${esc(title)}</div><p class="text-sm text-gray-600 mt-2">${esc(sub)}</p></div>`;
+// Render a friendly "nothing here yet" panel.
+// Pass an object for richer states:
+//   emptyState({ icon:"📍", title:"...", sub:"...", cta:{ label, href, primary } })
+export function emptyState(titleOrOpts, sub) {
+  const o = typeof titleOrOpts === "object" && titleOrOpts !== null
+    ? titleOrOpts
+    : { title: titleOrOpts, sub };
+  const icon = o.icon ? `<div class="text-4xl mb-3" aria-hidden="true">${esc(o.icon)}</div>` : "";
+  const cta  = o.cta ? `<a href="${attr(o.cta.href || "#")}" class="${o.cta.primary !== false ? "btn-primary" : "btn-ghost"} mt-6 inline-flex">${esc(o.cta.label)}</a>` : "";
+  return `<div class="text-center py-16 col-span-full">${icon}
+    <div class="font-display text-2xl font-bold">${esc(o.title)}</div>
+    ${o.sub ? `<p class="text-sm text-gray-600 mt-2 max-w-md mx-auto leading-relaxed">${esc(o.sub)}</p>` : ""}
+    ${cta}
+  </div>`;
 }
 
 // ----- Toast ---------------------------------------------------------------

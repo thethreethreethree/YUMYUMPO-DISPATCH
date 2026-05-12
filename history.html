@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Activity · YUMYUMPO Dispatch</title>
+<link rel="icon" type="image/svg+xml" href="./assets/favicon.svg"/>
+<link rel="apple-touch-icon" href="./assets/favicon.svg"/>
+<meta name="theme-color" content="#FFD000"/>
+<meta name="robots" content="noindex,nofollow"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/styles.css"/>
+<script src="./assets/js/config.js" onerror="window.__noConfig=true"></script>
+</head>
+<body class="bg-gray-50 text-brand-black font-sans">
+
+<header class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-white/85 border-b border-gray-200">
+  <div class="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
+    <a href="./rider-dashboard.html" class="flex items-center gap-2">
+      <span class="w-9 h-9 rounded-2xl bg-brand-yellow text-brand-black grid place-items-center font-display font-black">Y</span>
+      <span class="font-display font-bold text-lg">Activity</span>
+    </a>
+    <div id="sessionSlot"></div>
+  </div>
+</header>
+
+<main class="pt-24 pb-24 max-w-5xl mx-auto px-4 md:px-8">
+
+  <header class="flex items-center justify-between mb-8 flex-wrap gap-4">
+    <div>
+      <div class="text-xs uppercase tracking-widest text-gray-600 font-bold">Driver history</div>
+      <h1 class="font-display text-3xl md:text-4xl font-black mt-1">Your deliveries</h1>
+    </div>
+    <a href="./rider-dashboard.html" class="btn-ghost !py-2 !px-4 !text-sm">← Back to dashboard</a>
+  </header>
+
+  <!-- KPI summary -->
+  <section class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+    <div class="kpi"><div class="kpi-label">Total deliveries</div><div class="kpi-value" id="kpiTotal"><span class="skeleton skeleton-num"></span></div></div>
+    <div class="kpi"><div class="kpi-label">Delivered</div><div class="kpi-value" id="kpiDelivered"><span class="skeleton skeleton-num"></span></div></div>
+    <div class="kpi"><div class="kpi-label">Cancelled</div><div class="kpi-value" id="kpiCancelled"><span class="skeleton skeleton-num"></span></div></div>
+    <div class="kpi"><div class="kpi-label">Last 7 days</div><div class="kpi-value" id="kpiRecent"><span class="skeleton skeleton-num"></span></div></div>
+  </section>
+
+  <!-- Filters -->
+  <section class="flex items-center justify-between flex-wrap gap-3 mb-5">
+    <div class="flex gap-2 flex-wrap" id="histFilters">
+      <button type="button" class="tab active" data-filter="all">All</button>
+      <button type="button" class="tab"        data-filter="Delivered">Delivered</button>
+      <button type="button" class="tab"        data-filter="Cancelled">Cancelled</button>
+      <button type="button" class="tab"        data-filter="active">In progress</button>
+    </div>
+    <button type="button" id="refreshBtn" class="text-xs font-bold text-yellow-dark hover:underline">Refresh</button>
+  </section>
+
+  <!-- List -->
+  <section id="histList" class="space-y-3"></section>
+</main>
+
+<script type="module">
+import { isConfigured, requireAuth } from "./assets/js/auth.js";
+import { renderSessionBadge, bindAuthRefresh } from "./assets/js/session-ui.js";
+import { fetchRiderHistory, fetchRider } from "./assets/js/api.js";
+import { humanizeError, esc, attr, toastError } from "./assets/js/components.js";
+
+renderSessionBadge(document.getElementById("sessionSlot"));
+bindAuthRefresh(document.getElementById("sessionSlot"));
+
+// Auth gate. Only riders need a history view.
+let me, rider;
+if (isConfigured()) {
+  me = await requireAuth("rider");
+  if (!me) throw new Error("redirecting");
+  rider = await fetchRider(me.profile.id);
+  if (!rider) { location.href = "./riders.html?missing=1"; throw new Error("no profile"); }
+} else {
+  rider = await fetchRider("r1");
+  document.body.insertAdjacentHTML("beforeend",
+    `<div class="config-banner">⚠ Preview mode. Add Supabase keys in <code>assets/js/config.js</code> to go live.</div>`);
+}
+
+let allRows = [];
+let currentFilter = "all";
+
+const list = document.getElementById("histList");
+
+function skeletonList(n = 4) {
+  return Array.from({length: n}).map(() => `
+    <div class="skeleton-row">
+      <span class="skeleton-line"></span>
+      <span class="skeleton-line"></span>
+      <span class="skeleton-line"></span>
+    </div>`).join("");
+}
+
+function fmtDate(iso) {
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+  } catch { return String(iso); }
+}
+
+function statusBadge(status) {
+  const map = {
+    "Delivered":  "bg-green-100 text-green-800",
+    "Cancelled":  "bg-red-50 text-red-700",
+    "Accepted":   "bg-yellow-light text-yellow-dark",
+    "Picked Up":  "bg-yellow-light text-yellow-dark",
+  };
+  const cls = map[status] || "bg-gray-100 text-gray-800";
+  return `<span class="inline-flex items-center gap-1 ${cls} text-[11px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full">${esc(status)}</span>`;
+}
+
+function row(r) {
+  const restName = r.restaurants?.name || r.restaurant || "Restaurant";
+  const created = r.created_at || r.created;
+  const delivered = r.delivered_at;
+  const cancelled = r.cancelled_at;
+  const finished = delivered || cancelled || null;
+  return `<article class="bg-white rounded-2xl border border-gray-200 p-5">
+    <div class="flex items-start justify-between gap-3 flex-wrap">
+      <div class="min-w-0 flex-1">
+        <div class="text-xs uppercase tracking-widest text-gray-600 font-bold">${esc(r.zone)}</div>
+        <div class="font-display font-bold text-lg mt-1 truncate">${esc(restName)} → ${esc(r.dropoff)}</div>
+        <div class="text-xs text-gray-600 mt-1">
+          Pickup: ${esc(r.pickup)}
+        </div>
+      </div>
+      <div class="text-right">${statusBadge(r.status)}</div>
+    </div>
+    <div class="mt-4 pt-3 border-t border-gray-100 text-xs text-gray-600 flex items-center gap-4 flex-wrap">
+      <span><b class="text-brand-black">Created</b> · ${esc(fmtDate(created))}</span>
+      ${r.accepted_at  ? `<span><b class="text-brand-black">Accepted</b> · ${esc(fmtDate(r.accepted_at))}</span>` : ""}
+      ${r.picked_up_at ? `<span><b class="text-brand-black">Picked up</b> · ${esc(fmtDate(r.picked_up_at))}</span>` : ""}
+      ${finished ? `<span><b class="text-brand-black">${delivered ? "Delivered" : "Cancelled"}</b> · ${esc(fmtDate(finished))}</span>` : ""}
+      ${r.notes ? `<span class="w-full text-gray-500 italic">"${esc(r.notes)}"</span>` : ""}
+    </div>
+  </article>`;
+}
+
+function applyFilter() {
+  let rows = allRows;
+  if (currentFilter === "active") rows = allRows.filter(r => ["Accepted","Picked Up"].includes(r.status));
+  else if (currentFilter !== "all") rows = allRows.filter(r => r.status === currentFilter);
+  if (!rows.length) {
+    list.innerHTML = `<div class="text-center py-16 bg-white border border-gray-200 rounded-2xl">
+      <div class="text-3xl mb-2">📭</div>
+      <div class="font-display font-bold text-lg">${currentFilter === "all" ? "No deliveries yet" : "Nothing in this view"}</div>
+      <div class="text-sm text-gray-600 mt-1 max-w-md mx-auto">${
+        currentFilter === "all"
+          ? "Once you accept and complete a delivery, it'll show up here."
+          : "Try a different filter."
+      }</div>
+    </div>`;
+    return;
+  }
+  list.innerHTML = rows.map(row).join("");
+}
+
+function applyKPIs() {
+  const total     = allRows.length;
+  const delivered = allRows.filter(r => r.status === "Delivered").length;
+  const cancelled = allRows.filter(r => r.status === "Cancelled").length;
+  const cutoff    = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const recent    = allRows.filter(r => new Date(r.created_at || r.created || 0).getTime() > cutoff).length;
+  document.getElementById("kpiTotal").textContent     = total;
+  document.getElementById("kpiDelivered").textContent = delivered;
+  document.getElementById("kpiCancelled").textContent = cancelled;
+  document.getElementById("kpiRecent").textContent    = recent;
+}
+
+async function load() {
+  list.innerHTML = skeletonList(4);
+  try {
+    allRows = await fetchRiderHistory(rider.id, { limit: 100 });
+    applyKPIs();
+    applyFilter();
+  } catch (e) {
+    list.innerHTML = `<div class="text-center py-12 text-sm text-red-600">${esc(humanizeError(e))}</div>`;
+    toastError(e);
+  }
+}
+
+document.querySelectorAll("#histFilters [data-filter]").forEach(b => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll("#histFilters [data-filter]").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    currentFilter = b.dataset.filter;
+    applyFilter();
+  });
+});
+document.getElementById("refreshBtn").addEventListener("click", load);
+
+load();
+</script>
+<script type="module" src="./assets/js/main.js"></script>
+</body>
+</html>

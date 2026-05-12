@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Analytics · YUMYUMPO Dispatch</title>
+<link rel="icon" type="image/svg+xml" href="./assets/favicon.svg"/>
+<link rel="apple-touch-icon" href="./assets/favicon.svg"/>
+<meta name="theme-color" content="#FFD000"/>
+<meta name="robots" content="noindex,nofollow"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/styles.css"/>
+<script src="./assets/js/config.js" onerror="window.__noConfig=true"></script>
+</head>
+<body class="bg-gray-50 text-brand-black font-sans">
+
+<header class="dash-mobilebar">
+  <a href="./restaurants.html" class="menu-trigger" aria-label="Back to dashboard">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+  </a>
+  <div class="flex items-center gap-2"><span class="w-7 h-7 rounded-xl bg-brand-yellow text-brand-black grid place-items-center font-display font-black text-sm">Y</span><span class="font-display font-bold text-sm">Analytics</span></div>
+  <span class="w-10"></span>
+</header>
+
+<header class="fixed top-0 inset-x-0 z-40 backdrop-blur-xl bg-white/85 border-b border-gray-200 hidden md:block">
+  <div class="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
+    <a href="./restaurants.html" class="flex items-center gap-2">
+      <span class="w-9 h-9 rounded-2xl bg-brand-yellow text-brand-black grid place-items-center font-display font-black">Y</span>
+      <span class="font-display font-bold text-lg">Analytics</span>
+    </a>
+    <div class="flex items-center gap-3">
+      <a href="./restaurants.html" class="btn-ghost !py-2 !px-4 !text-sm">← Back to dashboard</a>
+      <div id="sessionSlot"></div>
+    </div>
+  </div>
+</header>
+
+<main class="pt-20 md:pt-24 pb-24 max-w-5xl mx-auto px-4 md:px-8">
+
+  <header class="mb-8 flex items-end justify-between flex-wrap gap-4">
+    <div>
+      <div class="text-xs uppercase tracking-widest text-gray-600 font-bold">Restaurant insights</div>
+      <h1 class="font-display text-3xl md:text-4xl font-black mt-1" id="restName">—</h1>
+      <p class="text-sm text-gray-600 mt-2">Operational metrics from your last 90 days.</p>
+    </div>
+    <div class="flex gap-2 flex-wrap" id="rangeFilters">
+      <button type="button" class="tab"        data-range="7">7d</button>
+      <button type="button" class="tab active" data-range="30">30d</button>
+      <button type="button" class="tab"        data-range="90">90d</button>
+    </div>
+  </header>
+
+  <!-- KPIs -->
+  <section class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+    <div class="kpi"><div class="kpi-label">Total requests</div><div class="kpi-value" id="kpiTotal"><span class="skeleton skeleton-num"></span></div></div>
+    <div class="kpi"><div class="kpi-label">Delivered</div><div class="kpi-value" id="kpiDelivered"><span class="skeleton skeleton-num"></span></div></div>
+    <div class="kpi"><div class="kpi-label">Cancellation rate</div><div class="kpi-value" id="kpiCancelRate"><span class="skeleton skeleton-num"></span></div></div>
+    <div class="kpi"><div class="kpi-label">Avg time to accept</div><div class="kpi-value" id="kpiTTA"><span class="skeleton skeleton-num"></span></div></div>
+  </section>
+
+  <section class="grid md:grid-cols-2 gap-5 mb-8">
+    <!-- Top drivers -->
+    <div class="bg-white rounded-2xl border border-gray-200 p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-display text-xl font-bold">Top drivers</h2>
+        <a href="./restaurants.html#preferred" class="text-xs font-bold text-yellow-dark hover:underline">Manage preferred →</a>
+      </div>
+      <div id="topDrivers" class="space-y-3"></div>
+    </div>
+
+    <!-- Top zones -->
+    <div class="bg-white rounded-2xl border border-gray-200 p-6">
+      <h2 class="font-display text-xl font-bold mb-4">Top delivery zones</h2>
+      <div id="topZones" class="space-y-3"></div>
+    </div>
+  </section>
+
+  <!-- Daily volume -->
+  <section class="bg-white rounded-2xl border border-gray-200 p-6 mb-8">
+    <h2 class="font-display text-xl font-bold mb-1">Daily volume</h2>
+    <p class="text-xs text-gray-600 mb-5" id="volumeRange">Requests per day in the selected range.</p>
+    <div id="volumeChart" class="h-44"></div>
+  </section>
+
+  <!-- Recent -->
+  <section class="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+    <div class="flex items-center justify-between px-6 pt-6 mb-4">
+      <h2 class="font-display text-xl font-bold">Recent requests</h2>
+      <a href="./restaurants.html#requests" class="text-xs font-bold text-yellow-dark hover:underline">Full table →</a>
+    </div>
+    <table class="w-full text-sm">
+      <thead class="bg-yellow-pale">
+        <tr class="text-left text-gray-600 font-bold">
+          <th class="p-4">Created</th><th class="p-4">Zone</th><th class="p-4">Driver</th><th class="p-4">Status</th><th class="p-4 text-right">Duration</th>
+        </tr>
+      </thead>
+      <tbody id="recentRows"></tbody>
+    </table>
+  </section>
+</main>
+
+<script type="module">
+import { isConfigured, requireAuth } from "./assets/js/auth.js";
+import { renderSessionBadge, bindAuthRefresh } from "./assets/js/session-ui.js";
+import { fetchRestaurantHistory } from "./assets/js/api.js";
+import { humanizeError, esc, attr, safeImg, toastError } from "./assets/js/components.js";
+
+renderSessionBadge(document.getElementById("sessionSlot"));
+bindAuthRefresh(document.getElementById("sessionSlot"));
+
+// Auth gate
+let me, restaurant;
+if (isConfigured()) {
+  me = await requireAuth("restaurant");
+  if (!me) throw new Error("redirecting");
+  restaurant = me.profile;
+} else {
+  restaurant = { id: "demo-restaurant", name: "Preview Mode" };
+  document.body.insertAdjacentHTML("beforeend",
+    `<div class="config-banner">⚠ Preview mode. Add Supabase keys to see real analytics.</div>`);
+}
+document.getElementById("restName").textContent = restaurant.name || "Your restaurant";
+
+let allRows = [];
+let rangeDays = 30;
+
+function fmtMinutes(ms) {
+  if (!Number.isFinite(ms) || ms <= 0) return "—";
+  const m = Math.round(ms / 60000);
+  if (m < 60) return m + " min";
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  return r ? `${h}h ${r}m` : `${h}h`;
+}
+function fmtDate(iso) { try { return new Date(iso).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" }); } catch { return String(iso); } }
+function pct(n, d) { return d ? Math.round((n / d) * 100) + "%" : "—"; }
+
+function statusBadge(s) {
+  const map = {
+    "Delivered":  "bg-green-100 text-green-800",
+    "Cancelled":  "bg-red-50 text-red-700",
+    "Available":  "bg-gray-100 text-gray-700",
+    "Accepted":   "bg-yellow-light text-yellow-dark",
+    "Picked Up":  "bg-yellow-light text-yellow-dark",
+  };
+  return `<span class="inline-flex items-center ${map[s]||"bg-gray-100"} text-[11px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full">${esc(s)}</span>`;
+}
+
+function recompute() {
+  const cutoff = Date.now() - rangeDays * 86400000;
+  const rows = allRows.filter(r => new Date(r.created_at || 0).getTime() >= cutoff);
+  document.getElementById("volumeRange").textContent = `Requests per day · last ${rangeDays} days.`;
+
+  // KPIs
+  const total     = rows.length;
+  const delivered = rows.filter(r => r.status === "Delivered").length;
+  const cancelled = rows.filter(r => r.status === "Cancelled").length;
+  const ttaMs = rows
+    .filter(r => r.accepted_at && r.created_at)
+    .map(r => new Date(r.accepted_at).getTime() - new Date(r.created_at).getTime())
+    .filter(d => d > 0);
+  const avgTTA = ttaMs.length ? ttaMs.reduce((a,b)=>a+b,0) / ttaMs.length : 0;
+
+  document.getElementById("kpiTotal").textContent      = total;
+  document.getElementById("kpiDelivered").textContent  = delivered;
+  document.getElementById("kpiCancelRate").textContent = pct(cancelled, total);
+  document.getElementById("kpiTTA").textContent        = fmtMinutes(avgTTA);
+
+  // Top drivers
+  const byDriver = new Map();
+  rows.forEach(r => {
+    if (!r.rider_id) return;
+    const key = r.rider_id;
+    const existing = byDriver.get(key) || {
+      id: key, name: r.riders?.name || "Driver", photo: r.riders?.profile_photo,
+      rating: Number(r.riders?.rating) || 0, vehicle: r.riders?.vehicle_type || "",
+      delivered: 0, cancelled: 0, total: 0,
+    };
+    existing.total++;
+    if (r.status === "Delivered") existing.delivered++;
+    if (r.status === "Cancelled") existing.cancelled++;
+    byDriver.set(key, existing);
+  });
+  const topDrivers = [...byDriver.values()].sort((a,b) => b.delivered - a.delivered || b.total - a.total).slice(0, 5);
+  const topDriversEl = document.getElementById("topDrivers");
+  if (!topDrivers.length) {
+    topDriversEl.innerHTML = `<div class="text-sm text-gray-600 py-6 text-center">No deliveries with assigned drivers in this range yet.</div>`;
+  } else {
+    topDriversEl.innerHTML = topDrivers.map((d, i) => `
+      <a href="./rider.html?id=${attr(d.id)}" class="flex items-center gap-3 p-3 -mx-2 rounded-xl hover:bg-yellow-pale transition">
+        <span class="font-display font-black text-sm w-6 text-gray-400">${i+1}</span>
+        <img src="${attr(safeImg(d.photo, "https://placehold.co/56x56/FFD000/111111?text=Y"))}" alt="" class="w-10 h-10 rounded-full object-cover border border-gray-200" referrerpolicy="no-referrer"/>
+        <div class="flex-1 min-w-0">
+          <div class="font-semibold truncate">${esc(d.name)}</div>
+          <div class="text-xs text-gray-600 capitalize">${esc(d.vehicle)}${d.rating ? ` · ${d.rating.toFixed(1)}★` : ""}</div>
+        </div>
+        <div class="text-right">
+          <div class="font-display font-bold">${d.delivered}</div>
+          <div class="text-[10px] uppercase tracking-widest text-gray-400 font-bold">delivered</div>
+        </div>
+      </a>
+    `).join("");
+  }
+
+  // Top zones
+  const byZone = new Map();
+  rows.forEach(r => { byZone.set(r.zone, (byZone.get(r.zone) || 0) + 1); });
+  const topZones = [...byZone.entries()].sort((a,b) => b[1] - a[1]).slice(0, 5);
+  const maxZone  = topZones[0]?.[1] || 1;
+  const topZonesEl = document.getElementById("topZones");
+  if (!topZones.length) {
+    topZonesEl.innerHTML = `<div class="text-sm text-gray-600 py-6 text-center">No requests in this range yet.</div>`;
+  } else {
+    topZonesEl.innerHTML = topZones.map(([zone, count]) => `
+      <div>
+        <div class="flex items-center justify-between text-sm mb-1">
+          <span class="font-semibold truncate">${esc(zone)}</span>
+          <span class="text-gray-600">${count}</span>
+        </div>
+        <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div class="h-full bg-brand-yellow rounded-full" style="width: ${Math.round((count / maxZone) * 100)}%"></div>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  // Daily volume mini-bars
+  const dayMap = new Map();
+  for (let i = rangeDays - 1; i >= 0; i--) {
+    const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() - i);
+    dayMap.set(d.toISOString().slice(0,10), 0);
+  }
+  rows.forEach(r => {
+    const k = (r.created_at || "").slice(0,10);
+    if (dayMap.has(k)) dayMap.set(k, dayMap.get(k) + 1);
+  });
+  const dayMax = Math.max(1, ...dayMap.values());
+  const dayCount = dayMap.size;
+  const chart = document.getElementById("volumeChart");
+  chart.innerHTML = `<div class="flex items-end gap-[2px] h-full" role="img" aria-label="Daily request volume">${
+    [...dayMap.entries()].map(([day, n]) => `
+      <div class="flex-1 bg-brand-yellow/70 hover:bg-brand-yellow transition rounded-t-sm" title="${esc(day)}: ${n}" style="height: ${Math.max(2, (n / dayMax) * 100)}%"></div>
+    `).join("")
+  }</div>
+  <div class="mt-2 flex items-center justify-between text-[10px] uppercase tracking-widest text-gray-400 font-bold">
+    <span>${esc([...dayMap.keys()][0] || "")}</span>
+    <span>${dayCount} days</span>
+    <span>${esc([...dayMap.keys()][dayCount-1] || "today")}</span>
+  </div>`;
+
+  // Recent table
+  const tbody = document.getElementById("recentRows");
+  const recent = rows.slice(0, 12);
+  if (!recent.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-sm text-gray-600">Nothing here yet for this range.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = recent.map(r => {
+    const dur = (r.delivered_at && r.accepted_at) ? new Date(r.delivered_at).getTime() - new Date(r.accepted_at).getTime() : null;
+    return `<tr class="border-t border-gray-100">
+      <td class="p-4 text-gray-600">${esc(fmtDate(r.created_at))}</td>
+      <td class="p-4 font-semibold">${esc(r.zone)}</td>
+      <td class="p-4">${esc(r.riders?.name || "—")}</td>
+      <td class="p-4">${statusBadge(r.status)}</td>
+      <td class="p-4 text-right text-gray-600">${esc(fmtMinutes(dur))}</td>
+    </tr>`;
+  }).join("");
+}
+
+document.querySelectorAll("#rangeFilters [data-range]").forEach(b => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll("#rangeFilters [data-range]").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    rangeDays = +b.dataset.range;
+    recompute();
+  });
+});
+
+(async () => {
+  try {
+    allRows = await fetchRestaurantHistory(restaurant.id, { sinceDays: 90, limit: 500 });
+    recompute();
+  } catch (e) {
+    toastError(e);
+    document.querySelectorAll(".kpi-value").forEach(el => el.textContent = "—");
+    document.getElementById("topDrivers").innerHTML = document.getElementById("topZones").innerHTML =
+      `<div class="text-sm text-red-600">${esc(humanizeError(e))}</div>`;
+  }
+})();
+</script>
+<script type="module" src="./assets/js/main.js"></script>
+</body>
+</html>

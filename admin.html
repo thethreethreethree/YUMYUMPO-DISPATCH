@@ -144,7 +144,14 @@ async function renderPending() {
   try {
     const data = await fetchPendingVerifications();
     document.getElementById("kpiPending").textContent = data.length;
-    if (!data.length) { list.innerHTML = `<div class="bg-white border border-gray-200 rounded-2xl p-6 text-sm text-gray-600">No pending verifications.</div>`; return; }
+    if (!data.length) {
+      list.innerHTML = `<div class="bg-white border border-gray-200 rounded-2xl p-10 text-center">
+        <div class="text-3xl mb-2">✨</div>
+        <div class="font-display font-bold text-lg">Queue clear</div>
+        <div class="text-sm text-gray-600 mt-1">No drivers waiting for review right now. New applications will land here as they come in.</div>
+      </div>`;
+      return;
+    }
     list.innerHTML = data.map(v => {
       const r = v.riders || {};
       const photo = safeImg(r.profile_photo, "https://placehold.co/120x120/FFD000/111111?text=Y");

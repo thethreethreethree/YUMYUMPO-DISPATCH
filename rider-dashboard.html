@@ -48,7 +48,10 @@
   </section>
 
   <section>
-    <h2 class="font-display text-2xl font-bold mb-4">In progress</h2>
+    <div class="flex items-end justify-between mb-4 flex-wrap gap-2">
+      <h2 class="font-display text-2xl font-bold">In progress</h2>
+      <a href="./history.html" class="text-xs font-bold text-yellow-dark hover:underline">View full activity →</a>
+    </div>
     <div id="inProgress" class="space-y-3"></div>
   </section>
 
@@ -66,12 +69,13 @@ import { isConfigured, requireAuth } from "./assets/js/auth.js";
 import { renderSessionBadge, bindAuthRefresh } from "./assets/js/session-ui.js";
 import {
   fetchRider, fetchRequests, acceptRequest, markPickedUp, markDelivered,
-  setRiderStatus, updateRiderProfile, uploadAvatar, getZones, enums, trackEvent,
+  cancelRequest, setRiderStatus, updateRiderProfile, uploadAvatar,
+  fetchRestaurantsThatPreferMe, getZones, enums, trackEvent,
 } from "./assets/js/api.js";
 import { getUser } from "./assets/js/auth.js";
 import { toast, toastError, humanizeError, modal, closeModal, esc, attr } from "./assets/js/components.js";
 import { mountNotificationCenter } from "./assets/js/notification-center.js";
-import { notifyRequestAccepted, notifyDeliveryCompleted } from "./assets/js/notifications.js";
+import { notifyRequestAccepted, notifyDeliveryCompleted, pushNotification } from "./assets/js/notifications.js";
 
 const sessionSlot = document.getElementById("sessionSlot");
 
@@ -157,8 +161,14 @@ async function render() {
     const hasZones = Array.isArray(rider.zones) && rider.zones.length > 0;
     const isOnline = rider.status === "online" || rider.status === "available";
 
-    const open = hasZones ? await fetchRequests({ openInZones: rider.zones, limit: 30 }) : [];
-    const mine = await fetchRequests({ rider_id: rider.id, limit: 30 });
+    // Fetch in parallel: open feed, my active jobs, and the set of
+    // restaurants that have saved this driver as preferred (drives the
+    // "First dibs" badge on matching cards).
+    const [open, mine, preferredBy] = await Promise.all([
+      hasZones ? fetchRequests({ openInZones: rider.zones, limit: 30 }) : Promise.resolve([]),
+      fetchRequests({ rider_id: rider.id, limit: 30 }),
+      fetchRestaurantsThatPreferMe(rider.id).catch(() => new Set()),
+    ]);
     const active = mine.filter(r => ["Accepted","Picked Up"].includes(r.status));
 
     let incomingHTML = "";
@@ -174,11 +184,11 @@ async function render() {
     } else if (!open.length) {
       incomingHTML = `<div class="bg-white border border-gray-200 rounded-2xl p-6 text-sm text-gray-600">No incoming requests right now. Stay online — restaurants will find you.</div>`;
     } else {
-      incomingHTML = open.map(r => requestCard(r, "open")).join("");
+      incomingHTML = open.map(r => requestCard(r, "open", { preferred: preferredBy.has(r.restaurant_id) })).join("");
     }
     incoming.innerHTML = incomingHTML;
 
-    inProg.innerHTML = active.length ? active.map(r => requestCard(r, "active")).join("")
+    inProg.innerHTML = active.length ? active.map(r => requestCard(r, "active", { preferred: preferredBy.has(r.restaurant_id) })).join("")
       : `<div class="bg-white border border-gray-200 rounded-2xl p-6 text-sm text-gray-600">Nothing in progress.</div>`;
 
     bindActions();
@@ -186,20 +196,38 @@ async function render() {
   } catch (e) { incoming.innerHTML = `<div class="text-sm text-red-600">${esc(humanizeError(e))}</div>`; }
 }
 
-function requestCard(r, mode) {
+function requestCard(r, mode, { preferred = false } = {}) {
   const created = r.created_at || r.created || "";
+  const dibsBadge = preferred
+    ? `<span class="inline-flex items-center gap-1 bg-brand-yellow text-brand-black text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full shrink-0" title="This restaurant has saved you as a preferred driver">🟡 First dibs</span>`
+    : "";
+  // Active-job action set: progress the lifecycle + bail button.
+  // The DB trigger permits the assigned driver to do Accepted → Picked Up,
+  // Picked Up → Delivered, AND Accepted → Cancelled, so cancellation is
+  // safe to expose only while still in the Accepted state.
+  let actions = "";
+  if (mode === "open") {
+    actions = `
+      <button class="btn-ghost decline" data-id="${attr(r.id)}" type="button">Skip</button>
+      <button class="btn-primary accept" data-id="${attr(r.id)}" type="button">Accept</button>`;
+  } else if (r.status === "Accepted") {
+    actions = `
+      <button class="btn-ghost cancel-job text-red-700 border-red-200 hover:bg-red-50" data-id="${attr(r.id)}" type="button">Cancel</button>
+      <button class="btn-primary pickup" data-id="${attr(r.id)}" type="button">Picked up</button>`;
+  } else {
+    actions = `<button class="btn-primary deliver" data-id="${attr(r.id)}" type="button">Delivered</button>`;
+  }
   return `
-    <div class="rider-card flex items-start justify-between gap-4 flex-wrap" data-id="${attr(r.id)}">
+    <div class="rider-card flex items-start justify-between gap-4 flex-wrap ${preferred ? "ring-2 ring-brand-yellow ring-offset-2" : ""}" data-id="${attr(r.id)}">
       <div class="min-w-0">
-        <div class="text-xs uppercase tracking-widest text-gray-600 font-bold">${esc(r.zone)}</div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <div class="text-xs uppercase tracking-widest text-gray-600 font-bold">${esc(r.zone)}</div>
+          ${dibsBadge}
+        </div>
         <div class="font-display text-lg font-bold mt-1">${esc(r.pickup)} → ${esc(r.dropoff)}</div>
         <div class="text-xs text-gray-600 mt-1">${esc(formatTime(created))}${r.notes ? " · " + esc(r.notes) : ""}</div>
       </div>
-      <div class="flex gap-2">
-        ${mode === "open" ? `<button class="btn-ghost decline" data-id="${attr(r.id)}" type="button">Skip</button><button class="btn-primary accept" data-id="${attr(r.id)}" type="button">Accept</button>`
-          : r.status === "Accepted" ? `<button class="btn-primary pickup" data-id="${attr(r.id)}" type="button">Picked up</button>`
-          : `<button class="btn-primary deliver" data-id="${attr(r.id)}" type="button">Delivered</button>`}
-      </div>
+      <div class="flex gap-2 flex-wrap">${actions}</div>
     </div>`;
 }
 function formatTime(t){ try { return new Date(t).toLocaleString(); } catch { return String(t); } }
@@ -227,6 +255,32 @@ function bindActions() {
   }));
   document.querySelectorAll(".pickup").forEach(b => b.addEventListener("click", async () => {
     try { await markPickedUp(b.dataset.id); toast("Marked as picked up"); render(); } catch(e){ toastError(e); }
+  }));
+  document.querySelectorAll(".cancel-job").forEach(b => b.addEventListener("click", async () => {
+    if (!confirm("Cancel this delivery? The restaurant will be notified that you're not completing this job.")) return;
+    b.disabled = true;
+    try {
+      const req = await cancelRequest(b.dataset.id);
+      // Tell the restaurant. `request_declined` is the closest fit in our
+      // notification_kind enum for a driver bailing on an accepted job —
+      // restaurant sees it under their Requests filter.
+      if (req?.restaurant_id) {
+        try {
+          await pushNotification({
+            recipient_type: "restaurant",
+            recipient_id: req.restaurant_id,
+            kind: "request_declined",
+            title: `${rider.name || "A driver"} cancelled the delivery.`,
+            body: "Re-post the request to find another driver.",
+            request_id: req.id,
+          });
+        } catch { /* notify failure shouldn't unwind the cancel */ }
+      }
+      toast("Delivery cancelled");
+      render();
+    } catch (e) {
+      toastError(e); b.disabled = false;
+    }
   }));
   document.querySelectorAll(".deliver").forEach(b => b.addEventListener("click", async () => {
     try {

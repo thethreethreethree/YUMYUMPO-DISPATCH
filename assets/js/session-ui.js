@@ -22,6 +22,7 @@ export async function renderSessionBadge(slot, { signedOutHref = "./auth.html" }
       </button>
       <div class="session-menu" hidden>
         <a class="session-link" href="${attr(dashHref)}">Dashboard</a>
+        <a class="session-link" href="./settings.html">Settings</a>
         <button class="session-link" id="signOutBtn" type="button">Sign out</button>
       </div>
     </div>

@@ -3,13 +3,31 @@
 //   import { mountNotificationCenter } from "./notification-center.js";
 //   mountNotificationCenter(document.getElementById("notifSlot"), { type:"restaurant", id:"demo" });
 import {
-  setRecipient, listNotifications, unreadCount, markRead, markAllRead,
+  setRecipient, setMutedKinds, listNotifications, unreadCount, markRead, markAllRead,
   on, enableBrowserPush, KIND_META, timeAgo, pushNotification,
+  disconnectRealtime, pingRefresh,
 } from "./notifications.js";
 import { esc, attr } from "./components.js";
+import { getNotificationPrefs } from "./api.js";
+
+// Capture the base document title once so we can suffix it with the unread
+// count when the user is on another tab. Restored when count drops to zero.
+const BASE_TITLE = document.title;
+function setTitleBadge(count) {
+  if (!count) document.title = BASE_TITLE;
+  else        document.title = `(${count > 9 ? "9+" : count}) ${BASE_TITLE}`;
+}
 
 export function mountNotificationCenter(slot, recipient) {
   setRecipient(recipient);
+
+  // Pull the recipient's mute preferences so muted kinds don't appear in
+  // the bell count, panel, or browser-push surface.
+  if (recipient && (recipient.type === "rider" || recipient.type === "restaurant")) {
+    getNotificationPrefs(recipient.type, recipient.id)
+      .then(p => { setMutedKinds(p?.muted || []); refreshDot(); })
+      .catch(() => { /* prefs are optional polish; don't break the bell */ });
+  }
 
   slot.innerHTML = `
     <div class="notif-wrap">
@@ -71,14 +89,33 @@ export function mountNotificationCenter(slot, recipient) {
 
   on(async (evt) => {
     if (evt.type === "incoming") {
-      flashToast(evt.notification.title);
-      pulse(dot);
+      // Only toast/pulse if the panel isn't already in the user's face.
+      if (panel.hidden) {
+        flashToast(evt.notification.title);
+        pulse(dot);
+      }
     }
     await refreshDot();
     if (!panel.hidden) await render();
   });
 
   refreshDot();
+
+  // When the tab comes back into focus, force a refresh — covers the case
+  // where the websocket dropped silently and missed an event.
+  const onVisibility = () => { if (document.visibilityState === "visible") pingRefresh(); };
+  document.addEventListener("visibilitychange", onVisibility);
+  // Reconnect realtime if the connection was severed (mobile sleep, network blip).
+  const onOnline = () => pingRefresh();
+  window.addEventListener("online", onOnline);
+
+  // Allow callers to fully unmount when the user signs out.
+  slot._unmountNotifs = () => {
+    document.removeEventListener("visibilitychange", onVisibility);
+    window.removeEventListener("online", onOnline);
+    disconnectRealtime();
+    setTitleBadge(0);
+  };
 
   async function render() {
     const all = await listNotifications({ limit: 50 });
@@ -116,6 +153,7 @@ export function mountNotificationCenter(slot, recipient) {
     const c = await unreadCount();
     dot.hidden = c === 0;
     dot.textContent = c > 9 ? "9+" : (c || "");
+    setTitleBadge(c);
   }
 
   function pulse(el) { el.classList.remove("pulse"); void el.offsetWidth; el.classList.add("pulse"); }
@@ -128,6 +166,12 @@ function flashToast(msg) {
   el.classList.add("show");
   clearTimeout(el._t);
   el._t = setTimeout(() => el.classList.remove("show"), 3200);
+}
+
+// Tear down a mounted notification center — call before sign-out so the
+// realtime channel is closed and the tab title badge is cleared.
+export function unmountNotificationCenter(slot) {
+  slot?._unmountNotifs?.();
 }
 
 // Re-export for callers who want to dispatch from page code

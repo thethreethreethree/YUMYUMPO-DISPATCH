@@ -10,6 +10,7 @@ const STORE_KEY = "ymp_notifications_v1";
 const listeners = new Set();
 let me = null;             // { type: 'restaurant'|'rider'|'admin', id: string, zones?: string[] }
 let channel = null;
+let mutedKinds = new Set(); // kinds the current recipient has muted
 
 // ---------- Identity (who am I receiving notifications for) -----------
 export function setRecipient(recipient) {
@@ -17,8 +18,16 @@ export function setRecipient(recipient) {
   if (HAS_SUPABASE) subscribeRealtime();
 }
 
+// Called by the notification-center on mount so client-side render/filters
+// respect the user's mute preferences.
+export function setMutedKinds(kinds) {
+  mutedKinds = new Set(Array.isArray(kinds) ? kinds : []);
+}
+export function isMuted(kind) { return mutedKinds.has(kind); }
+
 // ---------- Public API ------------------------------------------------
-export async function listNotifications({ limit = 30, unreadOnly = false } = {}) {
+export async function listNotifications({ limit = 30, unreadOnly = false, includeMuted = false } = {}) {
+  let rows;
   if (HAS_SUPABASE && me) {
     let q = supabase.from("notifications").select("*")
       .eq("recipient_type", me.type).eq("recipient_id", me.id)
@@ -26,11 +35,13 @@ export async function listNotifications({ limit = 30, unreadOnly = false } = {})
     if (unreadOnly) q = q.is("read_at", null);
     const { data, error } = await q;
     if (error) throw error;
-    return data;
+    rows = data;
+  } else {
+    const all = readStore();
+    const mine = me ? all.filter(n => n.recipient_type === me.type && n.recipient_id === me.id) : all;
+    rows = (unreadOnly ? mine.filter(n => !n.read_at) : mine).slice(0, limit);
   }
-  const all = readStore();
-  const mine = me ? all.filter(n => n.recipient_type === me.type && n.recipient_id === me.id) : all;
-  return (unreadOnly ? mine.filter(n => !n.read_at) : mine).slice(0, limit);
+  return includeMuted ? rows : rows.filter(n => !mutedKinds.has(n.kind));
 }
 
 export async function unreadCount() {
@@ -82,20 +93,67 @@ export async function pushNotification(n) {
 }
 
 // ---------- Domain helpers — fan-out for delivery flow ----------------
-export async function notifyRequestCreated(req, riders) {
-  // Notify every online rider whose zones include this request's zone.
-  const matched = riders.filter(r =>
+// Build the standard `request_new` notification payload for a given rider.
+function buildRequestNotice(req, rider, { preferred = false } = {}) {
+  return {
+    recipient_type: "rider", recipient_id: rider.id,
+    kind: "request_new",
+    title: preferred
+      ? `🟡 First dibs — request near ${req.zone}`
+      : `New delivery request near ${req.zone}`,
+    body: `${req.restaurant || "A restaurant"} → ${req.dropoff}`,
+    request_id: req.id,
+    payload: { preferred, expires_in_seconds: 120 },
+  };
+}
+
+// Notify online riders in the request's zone, biased toward the restaurant's
+// preferred list. The flow:
+//   1. If any PREFERRED riders are online + in-zone, ping ONLY them first.
+//   2. After `openFanoutDelayMs` (default 30s), if the request is still
+//      `Available`, fan out to the rest of the zone.
+//   3. If no preferred riders are eligible, fall back to the open broadcast
+//      immediately — restaurants without a preferred team aren't penalised.
+//
+// Returns { preferredCount, restCount, opened } where `opened` is true if
+// the open wave fired immediately (i.e. no preferred eligibles).
+export async function notifyRequestCreated(req, riders, {
+  preferredIds = [],
+  openFanoutDelayMs = 30000,
+} = {}) {
+  const inZone = (riders || []).filter(r =>
     (r.status === "online" || r.status === "available") &&
     r.zones?.includes(req.zone)
   );
-  await Promise.all(matched.map(r => pushNotification({
-    recipient_type: "rider", recipient_id: r.id,
-    kind: "request_new",
-    title: `New delivery request near ${req.zone}`,
-    body: `${req.restaurant || "A restaurant"} → ${req.dropoff}`,
-    request_id: req.id,
-    payload: { expires_in_seconds: 120 },
-  })));
+  const prefSet = new Set(preferredIds);
+  const preferred = inZone.filter(r => prefSet.has(r.id));
+  const rest      = inZone.filter(r => !prefSet.has(r.id));
+
+  // No preferred eligibles → standard open broadcast, done.
+  if (!preferred.length) {
+    await Promise.all(inZone.map(r => pushNotification(buildRequestNotice(req, r))));
+    return { preferredCount: 0, restCount: inZone.length, opened: true };
+  }
+
+  // Ping the preferred wave now.
+  await Promise.all(preferred.map(r => pushNotification(buildRequestNotice(req, r, { preferred: true }))));
+
+  // Schedule the open wave. We re-check the request's status at fire-time
+  // so an Accepted job never disturbs the rest of the zone.
+  if (rest.length) {
+    setTimeout(() => fanoutOpenWave(req, rest).catch(() => {}), openFanoutDelayMs);
+  }
+  return { preferredCount: preferred.length, restCount: rest.length, opened: false };
+}
+
+async function fanoutOpenWave(req, restRiders) {
+  // If Supabase is wired, only fire when the request is still Available.
+  if (HAS_SUPABASE && req.id) {
+    const { data } = await supabase.from("delivery_requests")
+      .select("status").eq("id", req.id).maybeSingle();
+    if (!data || data.status !== "Available") return; // already accepted/cancelled
+  }
+  await Promise.all(restRiders.map(r => pushNotification(buildRequestNotice(req, r))));
 }
 
 export async function notifyRequestAccepted(req, restaurantId, riderName) {
@@ -133,7 +191,7 @@ function emit(evt) { listeners.forEach(fn => { try { fn(evt); } catch {} }); }
 
 function subscribeRealtime() {
   if (!HAS_SUPABASE || !me) return;
-  if (channel) supabase.removeChannel(channel);
+  if (channel) { supabase.removeChannel(channel); channel = null; }
   channel = supabase
     .channel("notifications:" + me.type + ":" + me.id)
     .on("postgres_changes", {
@@ -144,8 +202,33 @@ function subscribeRealtime() {
       emit({ type: "incoming", notification: p.new });
       maybeBrowserPush(p.new);
     })
+    // Mark-as-read in another tab → reflect here without a refresh.
+    .on("postgres_changes", {
+      event: "UPDATE", schema: "public", table: "notifications",
+      filter: `recipient_id=eq.${me.id}`,
+    }, (p) => {
+      if (p.new?.recipient_type !== me.type) return;
+      emit({ type: "update", notification: p.new });
+    })
+    // Notification was deleted (e.g. by admin cleanup) — refresh counts.
+    .on("postgres_changes", {
+      event: "DELETE", schema: "public", table: "notifications",
+      filter: `recipient_id=eq.${me.id}`,
+    }, (p) => {
+      if (p.old?.recipient_type && p.old.recipient_type !== me.type) return;
+      emit({ type: "delete", notification: p.old });
+    })
     .subscribe();
 }
+
+// Tear down the realtime subscription — call on sign-out / page unload.
+export function disconnectRealtime() {
+  if (channel) { supabase.removeChannel(channel); channel = null; }
+  me = null;
+}
+
+// Force a fresh fetch — used after the tab regains visibility.
+export function pingRefresh() { emit({ type: "update" }); }
 
 // ---------- Browser push (Notification API) ---------------------------
 export async function enableBrowserPush() {
@@ -158,12 +241,13 @@ export async function enableBrowserPush() {
 
 function maybeBrowserPush(n) {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
+  if (mutedKinds.has(n.kind)) return;
   // only push when the tab is not focused
   if (document.visibilityState === "visible") return;
   try {
     new Notification(n.title, {
       body: n.body || "",
-      icon: "./assets/images/icon.png",
+      icon: "./assets/favicon.svg",
       tag: n.id,
     });
   } catch {}

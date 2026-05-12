@@ -120,6 +120,30 @@ Row-Level Security is enforced for everything: restaurants only see their own re
 
 ---
 
+## Scheduled jobs (Edge Functions)
+
+The repo ships one Supabase Edge Function under `supabase/functions/`:
+
+- **`expire-requests`** — scans `delivery_requests` for rows still `Available` past their `expires_at` (default: 5 min after creation), marks them `Cancelled`, and emits two notifications: `no_response` to the restaurant and `request_expired` to every eligible driver in the zone so the dashboards reflect the timeout without anyone refreshing.
+
+Deploy + schedule:
+
+```bash
+# Deploy
+supabase functions deploy expire-requests --no-verify-jwt
+
+# Schedule in Supabase Studio: Database → Cron Jobs → New job
+#   Name:     expire-requests
+#   Schedule: */1 * * * *   (every minute is fine — the function is cheap)
+#   Command:
+#     select net.http_post(
+#       url:='https://YOUR-REF.functions.supabase.co/expire-requests',
+#       headers:=jsonb_build_object('Authorization','Bearer ' || current_setting('app.cron_secret'))
+#     );
+```
+
+The function uses the service role key (set automatically in Edge Function env vars) so it can write notifications across user boundaries.
+
 ## Delivery lifecycle
 
 ```
@@ -143,10 +167,13 @@ Restaurant can `Cancel` while status is `Available` or `Accepted`.
 ├── index.html                  # Homepage
 ├── about.html                  # Brand / mission
 ├── auth.html                   # Sign in / sign up (email + magic link)
+├── settings.html               # Account, password, email, notif prefs, deactivate
 ├── restaurants.html            # Restaurant dashboard (auth-gated)
+├── analytics.html              # Restaurant analytics (auth-gated)
 ├── riders.html                 # Driver application (auth signup + Storage upload)
 ├── rider.html                  # Public driver profile
 ├── rider-dashboard.html        # Driver dashboard (auth-gated)
+├── history.html                # Driver activity history (auth-gated)
 ├── marketplace.html            # Public browse drivers
 ├── admin.html                  # Admin console (admin-only via app_metadata)
 ├── manifest.webmanifest        # PWA manifest
@@ -232,6 +259,20 @@ Triggers automatically:
 Aligned 1:1 with the YUMYUMPO Discovery palette so the two products feel like one network.
 
 ---
+
+## Error monitoring (optional)
+
+Drop a Sentry DSN into `assets/js/config.js` and the site auto-loads Sentry from CDN, captures uncaught errors + unhandled rejections, and attaches the signed-in user's role + ID to every event. Network glitches, ResizeObserver warnings, and expected auth redirects are filtered out before they ship.
+
+```js
+window.SENTRY_CONFIG = {
+  dsn:         "https://YOUR_KEY@oXXXX.ingest.sentry.io/PROJECT_ID",
+  environment: "production",
+  release:     "yumyumpo-dispatch@1.0.0",
+};
+```
+
+With no DSN set, the monitoring module is a no-op — zero overhead.
 
 ## Social sharing (OpenGraph)
 

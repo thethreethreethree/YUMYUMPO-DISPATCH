@@ -1,5 +1,6 @@
 // Global page hooks — runs on every page.
-import "./drawer.js"; // auto-mounts any [data-drawer-target] hamburgers
+import "./drawer.js";     // auto-mounts any [data-drawer-target] hamburgers
+import "./monitoring.js"; // lazy Sentry init when SENTRY_CONFIG.dsn is set
 
 if ("serviceWorker" in navigator && location.protocol !== "file:") {
   window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
