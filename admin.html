@@ -100,10 +100,16 @@ import { pushNotification } from "./assets/js/notifications.js";
 renderSessionBadge(document.getElementById("sessionSlot"));
 bindAuthRefresh(document.getElementById("sessionSlot"));
 
-// Admin gate
+// Admin gate.
+//   We call supabase.auth.getUser() directly (which round-trips to the auth
+//   server) instead of reading from the cached local session — otherwise
+//   admins flagged AFTER their JWT was minted see a stale `is_admin: undefined`
+//   and get bounced. The server call always returns current app_metadata.
+let adminUserId = null;
 if (HAS_SUPABASE) {
   const me = await requireAuth();
-  const user = await getUser();
+  const { data: { user }, error: userErr } = await supabase.auth.getUser();
+  if (userErr) console.warn("admin gate getUser error:", userErr);
   const isAdmin = user?.app_metadata?.is_admin === true;
   if (!isAdmin) {
     document.body.innerHTML = `<div class="min-h-screen grid place-items-center p-8 text-center">
@@ -114,12 +120,16 @@ if (HAS_SUPABASE) {
       </div></div>`;
     throw new Error("not admin");
   }
+  adminUserId = user.id;
 } else {
   document.body.insertAdjacentHTML("beforeend",
     `<div class="config-banner">⚠ Preview mode. Add Supabase keys + grant admin via <code>app_metadata.is_admin</code> on your user to unlock real data.</div>`);
 }
 
-mountNotificationCenter(document.getElementById("notifSlot"), { type:"admin", id:"admin" });
+// recipient_id must be a UUID; use the admin's own user.id. The recipient_type
+// filter still scopes correctly via the RLS read policy (admins see everything
+// regardless, but the dropdown shows their own admin-scoped notifications).
+mountNotificationCenter(document.getElementById("notifSlot"), { type:"admin", id: adminUserId || "00000000-0000-0000-0000-000000000000" });
 
 // Pane routing
 document.querySelectorAll("[data-pane]").forEach(a => {

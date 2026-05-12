@@ -1,7 +1,10 @@
 // YUMYUMPO Dispatch — service worker
 // Strategy: network-first for HTML (so updates ship instantly),
 // stale-while-revalidate for CSS/JS, cache-first for images.
-const VERSION = "v1.0.0";
+// Special case: config.js is runtime configuration (Supabase keys) and
+// MUST always come fresh from the network — never cached, otherwise
+// changing keys requires manual cache nukes.
+const VERSION = "v1.0.1";
 const HTML_CACHE  = `html-${VERSION}`;
 const ASSET_CACHE = `asset-${VERSION}`;
 const IMG_CACHE   = `img-${VERSION}`;
@@ -22,6 +25,10 @@ self.addEventListener("fetch", (e) => {
 
   // Never cache Supabase API/realtime/auth traffic.
   if (url.hostname.includes("supabase.co") || url.hostname.includes("supabase.in")) return;
+
+  // Never cache the runtime config (Supabase keys). Always hit the network
+  // so updates to assets/js/config.js take effect on the next page load.
+  if (url.pathname.endsWith("/config.js")) return;
 
   const accept = req.headers.get("accept") || "";
   if (accept.includes("text/html")) {
