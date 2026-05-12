@@ -214,9 +214,36 @@ async function renderPending() {
 }
 
 // === Riders table ==========================================================
+// Row actions depend on each driver's verification_status:
+//   verified  → Suspend (red)
+//   suspended → Reinstate (yellow)
+//   pending   → Approve via the Verifications pane (no inline button)
+//   rejected  → Reinstate (yellow) — gives them another chance
 async function renderRiders() {
   const riders = await fetchRiders();
   document.getElementById("kpiVerified").textContent = riders.filter(r => r.verified).length;
+
+  function actionButton(r) {
+    const vs = r.raw?.verification_status;
+    if (vs === "suspended" || vs === "rejected") {
+      return `<button class="text-xs font-bold text-yellow-dark hover:underline reinstate-btn" data-id="${attr(r.id)}" type="button">Reinstate</button>`;
+    }
+    if (vs === "verified") {
+      return `<button class="text-xs font-bold text-red-600 hover:underline suspend-btn" data-id="${attr(r.id)}" type="button">Suspend</button>`;
+    }
+    // pending — handled in the Verifications pane
+    return `<span class="text-xs text-gray-400">awaiting review</span>`;
+  }
+
+  function statusPill(r) {
+    const vs = r.raw?.verification_status;
+    if (vs === "suspended") return `<span class="badge" style="background:rgba(239,68,68,0.14);color:#B91C1C">suspended</span>`;
+    if (vs === "rejected")  return `<span class="badge" style="background:rgba(239,68,68,0.10);color:#B91C1C">rejected</span>`;
+    if (vs === "pending")   return `<span class="badge badge-zone">pending review</span>`;
+    const statusClass = ["online","available","busy","offline"].includes(r.status) ? r.status : "offline";
+    return `<span class="status-dot status-${statusClass}"></span> <span class="capitalize">${esc(r.status)}</span>`;
+  }
+
   document.getElementById("riderTable").innerHTML = `
     <table class="w-full text-sm">
       <thead class="bg-yellow-pale"><tr class="text-left text-gray-600 font-bold">
@@ -225,7 +252,6 @@ async function renderRiders() {
       </tr></thead>
       <tbody>${riders.map(r => {
         const photo = safeImg(r.photo, "https://placehold.co/56x56/FFD000/111111?text=Y");
-        const statusClass = ["online","available","busy","offline"].includes(r.status) ? r.status : "offline";
         const rating = Number(r.rating) || 0;
         return `
         <tr class="border-t border-gray-100">
@@ -233,18 +259,31 @@ async function renderRiders() {
           <td class="p-4 capitalize">${esc(r.vehicle)}</td>
           <td class="p-4 text-gray-600">${esc((r.zones||[]).join(", "))}</td>
           <td class="p-4 font-bold">${rating ? rating.toFixed(1) : "—"}</td>
-          <td class="p-4"><span class="status-dot status-${statusClass}"></span> <span class="capitalize">${esc(r.status)}</span></td>
-          <td class="p-4 text-right"><button class="text-xs font-bold text-red-600 hover:underline suspend-btn" data-id="${attr(r.id)}" type="button">Suspend</button></td>
+          <td class="p-4">${statusPill(r)}</td>
+          <td class="p-4 text-right">${actionButton(r)}</td>
         </tr>`;}).join("")}
       </tbody>
     </table>`;
+
   document.querySelectorAll(".suspend-btn").forEach(b => b.addEventListener("click", async () => {
     if (!HAS_SUPABASE) return toast("Supabase required");
+    if (!confirm("Suspend this driver? They'll be signed out and disappear from the marketplace until you reinstate them.")) return;
     try {
       await supabase.from("riders").update({ verification_status: "suspended", availability_status: "offline" }).eq("id", b.dataset.id);
       await pushNotification({ recipient_type:"rider", recipient_id: b.dataset.id, kind:"rider_suspended",
         title:"Your account has been suspended.", body:"Reach out to support if you believe this is a mistake." });
       toast("Driver suspended"); renderRiders();
+    } catch (e) { toastError(e); }
+  }));
+
+  document.querySelectorAll(".reinstate-btn").forEach(b => b.addEventListener("click", async () => {
+    if (!HAS_SUPABASE) return toast("Supabase required");
+    if (!confirm("Reinstate this driver? They'll be visible on the marketplace again. They'll need to set themselves online to start receiving requests.")) return;
+    try {
+      await supabase.from("riders").update({ verification_status: "verified" }).eq("id", b.dataset.id);
+      await pushNotification({ recipient_type:"rider", recipient_id: b.dataset.id, kind:"verification_approved",
+        title:"Your account has been reinstated.", body:"Welcome back. Set yourself to Online from your dashboard to start receiving requests." });
+      toast("Driver reinstated"); renderRiders();
     } catch (e) { toastError(e); }
   }));
 }
