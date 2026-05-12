@@ -313,9 +313,15 @@ alter table notifications       enable row level security;
 alter table analytics_events    enable row level security;
 alter table rider_zones         enable row level security;
 
--- Zones: read by anyone.
-drop policy if exists "Zones readable" on rider_zones;
-create policy "Zones readable" on rider_zones for select using (true);
+-- Zones: read by anyone; admins create / update / delete.
+drop policy if exists "Zones readable"     on rider_zones;
+drop policy if exists "Zones admin insert" on rider_zones;
+drop policy if exists "Zones admin update" on rider_zones;
+drop policy if exists "Zones admin delete" on rider_zones;
+create policy "Zones readable"     on rider_zones for select using (true);
+create policy "Zones admin insert" on rider_zones for insert with check (public.is_admin());
+create policy "Zones admin update" on rider_zones for update using (public.is_admin());
+create policy "Zones admin delete" on rider_zones for delete using (public.is_admin());
 
 -- Restaurants: public read for marketplace presence; self-write only.
 drop policy if exists "Restaurants public read"  on restaurants;

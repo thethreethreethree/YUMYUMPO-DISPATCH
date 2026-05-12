@@ -72,7 +72,25 @@
     </section>
 
     <section id="pane-zones" class="hidden mt-10">
-      <h2 class="font-display text-2xl font-bold mb-5">Delivery Zones</h2>
+      <header class="flex items-end justify-between flex-wrap gap-4 mb-5">
+        <div>
+          <h2 class="font-display text-2xl font-bold">Delivery Zones</h2>
+          <p class="text-sm text-gray-600 mt-1">Add new neighborhoods, deactivate ones you're winding down, or remove zones that never took off.</p>
+        </div>
+      </header>
+
+      <form id="newZoneForm" class="bg-white rounded-2xl border border-gray-200 p-5 mb-6 grid sm:grid-cols-[1fr_1fr_auto] gap-3 items-end" novalidate>
+        <div>
+          <label class="text-xs font-bold text-gray-600">Zone name</label>
+          <input id="newZoneName" class="field mt-1" required maxlength="80" placeholder="e.g. Las Cabanas" autocomplete="off"/>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-600">City (optional)</label>
+          <input id="newZoneCity" class="field mt-1" maxlength="60" placeholder="e.g. Palawan" autocomplete="off"/>
+        </div>
+        <button type="submit" class="btn-primary !py-3" id="newZoneSubmit">+ Add zone</button>
+      </form>
+
       <div id="zoneAdmin" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
     </section>
 
@@ -92,7 +110,10 @@
 import { isConfigured, requireAuth, getCurrentProfile, getUser } from "./assets/js/auth.js";
 import { renderSessionBadge, bindAuthRefresh } from "./assets/js/session-ui.js";
 import { supabase, HAS_SUPABASE } from "./assets/js/supabase.js";
-import { fetchRiders, getZones, fetchPendingVerifications, decideVerification, fetchRequests } from "./assets/js/api.js";
+import {
+  fetchRiders, getZones, fetchAllZones, createZone, updateZone, deleteZone,
+  fetchPendingVerifications, decideVerification, fetchRequests,
+} from "./assets/js/api.js";
 import { toast, toastError, humanizeError, esc, attr, safeImg } from "./assets/js/components.js";
 import { mountNotificationCenter } from "./assets/js/notification-center.js";
 import { pushNotification } from "./assets/js/notifications.js";
@@ -302,12 +323,84 @@ async function renderRestaurants() {
 
 // === Zones =================================================================
 async function renderZones() {
-  const zones = await getZones();
-  document.getElementById("zoneAdmin").innerHTML = zones.map(z => `
-    <div class="bg-white border border-gray-200 rounded-2xl p-4 flex items-center justify-between">
-      <div class="font-display font-bold">${esc(z)}</div><span class="badge badge-verified">Active</span>
-    </div>`).join("");
+  const wrap = document.getElementById("zoneAdmin");
+  try {
+    const zones = await fetchAllZones();
+    if (!zones.length) {
+      wrap.innerHTML = `<div class="col-span-full text-sm text-gray-600 bg-white border border-gray-200 rounded-2xl p-8 text-center">
+        No zones yet. Add your first one above so drivers and restaurants can pick it.
+      </div>`;
+      return;
+    }
+    wrap.innerHTML = zones.map(z => {
+      const activeBadge = z.active
+        ? `<span class="badge badge-verified">Active</span>`
+        : `<span class="badge" style="background:rgba(107,107,107,0.15);color:#6B6B6B">Inactive</span>`;
+      const toggleLabel = z.active ? "Deactivate" : "Reactivate";
+      return `
+      <div class="bg-white border border-gray-200 rounded-2xl p-4" data-zone="${attr(z.zone)}">
+        <div class="flex items-center justify-between gap-2">
+          <div class="min-w-0">
+            <div class="font-display font-bold truncate">${esc(z.zone)}</div>
+            <div class="text-xs text-gray-600 mt-0.5">${esc(z.city || "—")}</div>
+          </div>
+          ${activeBadge}
+        </div>
+        <div class="mt-4 flex items-center gap-3 text-xs">
+          <button type="button" class="zone-toggle font-bold text-yellow-dark hover:underline">${toggleLabel}</button>
+          <span class="text-gray-300">|</span>
+          <button type="button" class="zone-delete font-bold text-red-600 hover:underline">Delete</button>
+        </div>
+      </div>`;
+    }).join("");
+
+    wrap.querySelectorAll(".zone-toggle").forEach(b => b.addEventListener("click", async () => {
+      const card = b.closest("[data-zone]");
+      const zone = card.dataset.zone;
+      const current = zones.find(z => z.zone === zone);
+      try {
+        await updateZone(zone, { active: !current.active });
+        toast(current.active ? `${zone} deactivated` : `${zone} reactivated`);
+        renderZones();
+      } catch (e) { toastError(e); }
+    }));
+
+    wrap.querySelectorAll(".zone-delete").forEach(b => b.addEventListener("click", async () => {
+      const card = b.closest("[data-zone]");
+      const zone = card.dataset.zone;
+      if (!confirm(`Delete the zone "${zone}"? This can't be undone. Drivers still have this in their delivery_zones list, but new requests can't be created with it.`)) return;
+      try {
+        await deleteZone(zone);
+        toast(`${zone} deleted`);
+        renderZones();
+      } catch (e) { toastError(e); }
+    }));
+  } catch (e) {
+    wrap.innerHTML = `<div class="col-span-full text-sm text-red-600">${esc(humanizeError(e))}</div>`;
+  }
 }
+
+// Wire the add-zone form.
+document.getElementById("newZoneForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const nameEl = document.getElementById("newZoneName");
+  const cityEl = document.getElementById("newZoneCity");
+  const submit = document.getElementById("newZoneSubmit");
+  const name = nameEl.value.trim();
+  if (!name) return toast("Zone name is required");
+  const orig = submit.textContent;
+  submit.disabled = true; submit.textContent = "Adding…";
+  try {
+    await createZone(name, cityEl.value);
+    nameEl.value = ""; cityEl.value = "";
+    toast(`${name} added`);
+    renderZones();
+  } catch (e) {
+    toastError(e);
+  } finally {
+    submit.disabled = false; submit.textContent = orig;
+  }
+});
 
 // === Analytics =============================================================
 async function renderAnalytics() {

@@ -22,6 +22,43 @@ export async function getZones() {
   return (zonesCache = ZONES);
 }
 
+// Admin variant — returns every zone (including inactive) with full row data.
+export async function fetchAllZones() {
+  if (!isProd()) return ZONES.map(z => ({ zone: z, city: "", active: true }));
+  const { data, error } = await supabase.from("rider_zones")
+    .select("zone, city, active").order("zone");
+  if (error) throw error;
+  return data;
+}
+
+// Invalidate the active-zones cache after a write so consumers see fresh data.
+export function clearZonesCache() { zonesCache = null; }
+
+export async function createZone(zone, city) {
+  if (!isProd()) throw new Error("Connect Supabase to manage zones.");
+  const { error } = await supabase.from("rider_zones").insert({
+    zone: zone.trim(),
+    city: city?.trim() || null,
+    active: true,
+  });
+  if (error) throw error;
+  clearZonesCache();
+}
+
+export async function updateZone(zone, patch) {
+  if (!isProd()) throw new Error("Connect Supabase to manage zones.");
+  const { error } = await supabase.from("rider_zones").update(patch).eq("zone", zone);
+  if (error) throw error;
+  clearZonesCache();
+}
+
+export async function deleteZone(zone) {
+  if (!isProd()) throw new Error("Connect Supabase to manage zones.");
+  const { error } = await supabase.from("rider_zones").delete().eq("zone", zone);
+  if (error) throw error;
+  clearZonesCache();
+}
+
 // -------------------- RIDERS -----------------------------------------
 export async function fetchRiders(filters = {}) {
   const nameQuery = (filters.nameQuery || "").trim();
